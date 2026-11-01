@@ -1,0 +1,1032 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>لوحة مهام الشؤون الإدارية والتسويق | غزارة للتجارة والتسويق</title>
+    <meta name="robots" content="noindex, nofollow">
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet">
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="../assets/js/tailwind-config.js"></script>
+
+    <!-- SheetJS for Real Excel (.xlsx) Export -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+
+    <link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body class="min-h-screen flex flex-col selection:bg-ghazara-purple selection:text-white bg-[#FAF9FC]">
+
+    <!-- Ambient Aurora Background -->
+    <div class="aurora-canvas no-print" aria-hidden="true">
+        <div class="aurora-orb aurora-orb-1"></div>
+        <div class="aurora-orb aurora-orb-2"></div>
+        <div class="aurora-orb aurora-orb-3"></div>
+    </div>
+
+    <!-- Server Confirmation Toast -->
+    <div id="tasks-toast" class="fixed bottom-5 left-5 z-50 hidden max-w-md rounded-2xl p-4 shadow-2xl border text-sm font-bold transition-all no-print"></div>
+
+    <!-- ==================== TOP HEADER BAR ==================== -->
+    <header class="sticky top-0 z-40 bg-white/90 backdrop-blur-xl border-b border-purple-100 shadow-sm no-print">
+        <div class="max-w-[1600px] mx-auto px-3 sm:px-6 h-20 flex items-center justify-between gap-2 sm:gap-4">
+            
+            <!-- Right: Mobile Sidebar Toggle + Logo + Page Title -->
+            <div class="flex items-center gap-2.5 sm:gap-4">
+                <button type="button" onclick="toggleTasksSidebar()" class="lg:hidden p-2.5 rounded-2xl bg-ghazara-purpleSoft text-ghazara-purple hover:bg-purple-200 transition-colors" aria-label="قائمة التصنيفات">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
+                    </svg>
+                </button>
+
+                <a href="index.html" class="flex items-center gap-2 shrink-0" title="العودة لبوابة الموظفين">
+                    <div class="flex flex-col items-end leading-none">
+                        <span class="text-lg sm:text-xl font-bold text-ghazara-purple">غزارة</span>
+                        <span class="font-display text-[10px] font-extrabold text-ghazara-orange">TASKS ERP</span>
+                    </div>
+                </a>
+
+                <span class="h-7 w-px bg-purple-200 hidden sm:inline-block"></span>
+
+                <div>
+                    <h1 class="text-sm sm:text-lg lg:text-xl font-bold text-ghazara-purpleDark leading-tight">
+                        لوحة مهام الشؤون الإدارية والتسويق
+                    </h1>
+                    <div class="flex items-center gap-2 text-[11px] text-slate-500">
+                        <span id="db-connection-indicator" class="inline-flex items-center gap-1 text-emerald-700 font-semibold">
+                            <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                            <span>متصل بقاعدة البيانات</span>
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Center: Live Current Date & Local Time (Asia/Aden) -->
+            <div class="hidden xl:flex items-center gap-3 bg-ghazara-purpleSoft/60 border border-purple-200/70 px-4 py-2 rounded-2xl">
+                <svg class="w-4 h-4 text-ghazara-purple shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+                <div class="text-xs">
+                    <span id="live-current-date" class="font-bold text-ghazara-purpleDark"></span>
+                    <span class="mx-1.5 text-purple-300">|</span>
+                    <span id="live-current-time" dir="ltr" class="font-display font-bold text-ghazara-orange"></span>
+                    <span id="live-timezone-badge" class="text-[10px] text-slate-500 mr-1">(Asia/Aden)</span>
+                </div>
+            </div>
+
+            <!-- Left: Quick Add Task + Notifications Bell + Personal Account Dropdown -->
+            <div class="flex items-center gap-2 sm:gap-3">
+                <button type="button" onclick="openTaskModal()" class="btn-purple-gradient text-xs sm:text-sm font-bold px-3.5 sm:px-5 py-2.5 rounded-full inline-flex items-center gap-1.5 shadow-sm">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/>
+                    </svg>
+                    <span class="hidden sm:inline">مهمة جديدة</span>
+                </button>
+
+                <!-- Notifications Bell with Unread Count -->
+                <div class="relative">
+                    <button type="button" onclick="toggleNotificationsMenu()" class="relative p-2.5 rounded-2xl bg-white border border-purple-200/80 text-ghazara-purpleDark hover:bg-ghazara-purpleSoft transition-all" aria-label="الإشعارات">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
+                        </svg>
+                        <span id="unread-notifications-badge" class="hidden absolute -top-1 -right-1 min-w-[20px] h-5 px-1 rounded-full bg-red-600 text-white font-display text-[11px] font-extrabold flex items-center justify-center shadow">
+                            0
+                        </span>
+                    </button>
+
+                    <!-- Notifications Dropdown Panel -->
+                    <div id="notifications-dropdown" class="hidden absolute left-0 mt-2 w-80 sm:w-96 bg-white rounded-3xl shadow-2xl border border-purple-200/90 overflow-hidden z-50">
+                        <div class="p-4 bg-ghazara-purpleSoft/60 border-b border-purple-100 flex items-center justify-between">
+                            <div>
+                                <h3 class="text-sm font-bold text-ghazara-purpleDark">مركز الإشعارات والتنبيهات</h3>
+                                <p class="text-[11px] text-slate-500">التنبيهات الداخلية للمهام والاستحقاقات</p>
+                            </div>
+                            <button type="button" onclick="markAllNotificationsAsRead()" class="text-xs font-bold text-ghazara-purple hover:underline">
+                                تحديد الكل كمقروء
+                            </button>
+                        </div>
+                        <div id="notifications-dropdown-list" class="max-h-80 overflow-y-auto divide-y divide-purple-100/60 custom-scrollbar"></div>
+                        <div class="p-3 bg-slate-50 border-t border-purple-100 text-center">
+                            <button type="button" onclick="switchMainWorkspaceView('reminders'); toggleNotificationsMenu();" class="text-xs font-bold text-ghazara-orange hover:underline">
+                                عرض سجل التذكيرات والجدولة الكامل ⟵
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Personal Account Menu Dropdown -->
+                <div class="relative">
+                    <button type="button" onclick="toggleAccountMenu()" class="flex items-center gap-2 bg-white border border-purple-200/80 hover:bg-ghazara-purpleSoft/50 px-3 py-1.5 rounded-2xl transition-all">
+                        <div class="w-8 h-8 rounded-xl bg-ghazara-purple text-white font-bold text-xs flex items-center justify-center" id="account-avatar-initials">غ</div>
+                        <div class="hidden md:block text-right">
+                            <div id="account-user-name" class="text-xs font-bold text-ghazara-purpleDark leading-none">الموظف</div>
+                            <div id="account-user-role" class="text-[10px] text-ghazara-orange font-semibold mt-0.5">الوظيفة</div>
+                        </div>
+                        <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                        </svg>
+                    </button>
+
+                    <div id="account-dropdown" class="hidden absolute left-0 mt-2 w-60 bg-white rounded-3xl shadow-2xl border border-purple-200/90 py-2 z-50 text-sm">
+                        <div class="px-4 py-2.5 border-b border-purple-100">
+                            <p id="dropdown-emp-name" class="font-bold text-ghazara-purpleDark"></p>
+                            <p id="dropdown-emp-email" class="font-display text-xs text-slate-500 truncate"></p>
+                        </div>
+                        <button type="button" onclick="switchMainWorkspaceView('settings'); toggleAccountMenu();" class="w-full text-right px-4 py-2.5 hover:bg-purple-50 flex items-center gap-2.5 text-slate-700 font-medium">
+                            <svg class="w-4 h-4 text-ghazara-purple" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                            </svg>
+                            <span>إعدادات الحساب والنظام</span>
+                        </button>
+                        <a href="index.html" class="w-full text-right px-4 py-2.5 hover:bg-purple-50 flex items-center gap-2.5 text-slate-700 font-medium">
+                            <svg class="w-4 h-4 text-ghazara-teal" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>
+                            </svg>
+                            <span>بوابة الموارد البشرية والإجازات</span>
+                        </a>
+                        <div class="border-t border-purple-100 my-1"></div>
+                        <button type="button" onclick="logoutFromTasksPortal()" class="w-full text-right px-4 py-2.5 hover:bg-red-50 flex items-center gap-2.5 text-red-600 font-bold">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
+                            </svg>
+                            <span>تسجيل الخروج</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Mobile Date & Time Sub-bar -->
+        <div class="xl:hidden bg-ghazara-purpleSoft/50 border-t border-purple-100 px-4 py-1.5 flex items-center justify-between text-xs">
+            <span id="mobile-live-date" class="font-bold text-ghazara-purpleDark"></span>
+            <span id="mobile-live-time" dir="ltr" class="font-display font-bold text-ghazara-orange"></span>
+        </div>
+    </header>
+
+    <!-- ==================== MAIN WORKSPACE LAYOUT (SIDEBAR + CONTENT) ==================== -->
+    <div class="flex-grow max-w-[1600px] w-full mx-auto px-3 sm:px-6 py-6 flex flex-col lg:flex-row gap-6 items-start relative">
+
+        <!-- SIDEBAR: 8 Independent Categories + All Tasks + Archived Tasks + Main Views -->
+        <aside id="tasks-sidebar" class="fixed lg:static inset-y-0 right-0 z-40 w-80 lg:w-72 shrink-0 bg-white/95 lg:bg-transparent backdrop-blur-2xl lg:backdrop-blur-none p-4 lg:p-0 border-l lg:border-none border-purple-100 overflow-y-auto transform translate-x-full lg:translate-x-0 transition-transform duration-300 no-print">
+            <div class="frosted-card rounded-[28px] p-5 border-purple-200/80 space-y-6">
+                
+                <!-- Mobile Close Button -->
+                <div class="flex lg:hidden items-center justify-between pb-2 border-b border-purple-100">
+                    <span class="font-bold text-ghazara-purpleDark">القائمة والتصنيفات</span>
+                    <button type="button" onclick="toggleTasksSidebar()" class="text-slate-400 hover:text-slate-700 font-bold text-lg">✕</button>
+                </div>
+
+                <!-- Primary Navigation Views -->
+                <div class="space-y-1.5">
+                    <span class="px-2 text-[11px] font-bold text-ghazara-orange uppercase tracking-wider">أقسام اللوحة الرئيسية</span>
+                    <button type="button" onclick="switchMainWorkspaceView('tasks')" id="nav-view-tasks" class="w-full text-right px-3.5 py-2.5 rounded-2xl text-xs sm:text-sm font-bold flex items-center justify-between bg-ghazara-purple text-white shadow-sm transition-all">
+                        <span>📋 لوحة المهام والعمليات</span>
+                    </button>
+                    <button type="button" onclick="switchMainWorkspaceView('calendar')" id="nav-view-calendar" class="w-full text-right px-3.5 py-2.5 rounded-2xl text-xs sm:text-sm font-bold flex items-center justify-between text-slate-700 hover:bg-purple-50 transition-all">
+                        <span>📅 التقويم والجدولة (3 عروض)</span>
+                    </button>
+                    <button type="button" onclick="switchMainWorkspaceView('reminders')" id="nav-view-reminders" class="w-full text-right px-3.5 py-2.5 rounded-2xl text-xs sm:text-sm font-bold flex items-center justify-between text-slate-700 hover:bg-purple-50 transition-all">
+                        <span>🔔 الإشعارات والتذكيرات</span>
+                    </button>
+                    <button type="button" onclick="switchMainWorkspaceView('reports')" id="nav-view-reports" class="w-full text-right px-3.5 py-2.5 rounded-2xl text-xs sm:text-sm font-bold flex items-center justify-between text-slate-700 hover:bg-purple-50 transition-all">
+                        <span>📊 التقارير والتصدير</span>
+                    </button>
+                    <button type="button" onclick="switchMainWorkspaceView('settings')" id="nav-view-settings" class="w-full text-right px-3.5 py-2.5 rounded-2xl text-xs sm:text-sm font-bold flex items-center justify-between text-slate-700 hover:bg-purple-50 transition-all">
+                        <span>⚙️ الإعدادات والنسخ الاحتياطي</span>
+                    </button>
+                </div>
+
+                <!-- Independent Task Categories (All + 8 Categories + Archived) -->
+                <div class="space-y-2 pt-3 border-t border-purple-100">
+                    <div class="flex items-center justify-between px-2">
+                        <span class="text-[11px] font-bold text-ghazara-purple uppercase tracking-wider">تصنيفات المهام المعتمدة</span>
+                        <button type="button" onclick="syncDashboardWithServer()" class="text-[11px] font-bold text-ghazara-teal hover:underline" title="مزامنة مع قاعدة البيانات">تحديث ↻</button>
+                    </div>
+                    <div id="sidebar-categories-list" class="space-y-1.5">
+                        <!-- Injected dynamically from actual database categories -->
+                    </div>
+                </div>
+
+            </div>
+        </aside>
+
+        <!-- MAIN WORKSPACE CONTENT AREA -->
+        <div class="flex-grow w-full min-w-0 space-y-6">
+
+            <!-- =================================================================
+                 VIEW 1: TASKS & KPI DASHBOARD (لوحة المهام والمؤشرات التفاعلية)
+            ================================================================== -->
+            <div id="workspace-view-tasks" class="space-y-6">
+
+                <!-- 10 Interactive KPI Statistical Cards -->
+                <div class="space-y-2.5">
+                    <div class="flex flex-wrap items-center justify-between gap-2">
+                        <h2 class="text-sm font-bold text-ghazara-purpleDark flex items-center gap-2">
+                            <span class="w-2 h-2 rounded-full bg-ghazara-purple"></span>
+                            <span>المؤشرات الإحصائية الفعلية (اضغط على أي بطاقة لعرض المهام المطابقة مباشرة)</span>
+                        </h2>
+                        <span id="active-stat-filter-label" class="text-xs font-bold text-ghazara-orange bg-ghazara-orangeSoft px-3 py-1 rounded-full">
+                            الفلتر الإحصائي النشط: جميع المهام
+                        </span>
+                    </div>
+
+                    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4" id="kpi-cards-grid">
+                        <!-- 1. إجمالي المهام -->
+                        <button type="button" onclick="applyStatCardFilter('ALL')" id="stat-card-ALL" class="kpi-card-active frosted-card rounded-2xl p-4 text-right border border-purple-200/80 hover:border-ghazara-purple transition-all">
+                            <span class="text-xs font-bold text-slate-500 block">1. إجمالي المهام</span>
+                            <span id="kpi-val-ALL" class="font-display text-2xl sm:text-3xl font-extrabold text-ghazara-purpleDark mt-1 block">0</span>
+                            <span class="text-[10px] text-ghazara-purple font-semibold">جميع المهام النشطة</span>
+                        </button>
+
+                        <!-- 2. المهام الجديدة -->
+                        <button type="button" onclick="applyStatCardFilter('NEW')" id="stat-card-NEW" class="frosted-card rounded-2xl p-4 text-right border border-purple-200/80 hover:border-ghazara-purple transition-all">
+                            <span class="text-xs font-bold text-slate-500 block">2. المهام الجديدة</span>
+                            <span id="kpi-val-NEW" class="font-display text-2xl sm:text-3xl font-extrabold text-indigo-600 mt-1 block">0</span>
+                            <span class="text-[10px] text-indigo-600 font-semibold">حالة: جديدة</span>
+                        </button>
+
+                        <!-- 3. المهام قيد التنفيذ -->
+                        <button type="button" onclick="applyStatCardFilter('IN_PROGRESS')" id="stat-card-IN_PROGRESS" class="frosted-card rounded-2xl p-4 text-right border border-purple-200/80 hover:border-ghazara-purple transition-all">
+                            <span class="text-xs font-bold text-slate-500 block">3. قيد التنفيذ</span>
+                            <span id="kpi-val-IN_PROGRESS" class="font-display text-2xl sm:text-3xl font-extrabold text-sky-600 mt-1 block">0</span>
+                            <span class="text-[10px] text-sky-600 font-semibold">جارٍ العمل عليها</span>
+                        </button>
+
+                        <!-- 4. المهام المكتملة -->
+                        <button type="button" onclick="applyStatCardFilter('COMPLETED')" id="stat-card-COMPLETED" class="frosted-card rounded-2xl p-4 text-right border border-purple-200/80 hover:border-ghazara-purple transition-all">
+                            <span class="text-xs font-bold text-slate-500 block">4. المهام المكتملة</span>
+                            <span id="kpi-val-COMPLETED" class="font-display text-2xl sm:text-3xl font-extrabold text-emerald-600 mt-1 block">0</span>
+                            <span class="text-[10px] text-emerald-600 font-semibold">تم إنجازها 100%</span>
+                        </button>
+
+                        <!-- 5. المهام المتأخرة -->
+                        <button type="button" onclick="applyStatCardFilter('OVERDUE')" id="stat-card-OVERDUE" class="frosted-card rounded-2xl p-4 text-right border border-red-200/80 hover:border-red-500 transition-all">
+                            <span class="text-xs font-bold text-red-600 block">5. المهام المتأخرة</span>
+                            <span id="kpi-val-OVERDUE" class="font-display text-2xl sm:text-3xl font-extrabold text-red-600 mt-1 block">0</span>
+                            <span class="text-[10px] text-red-500 font-semibold">تجاوزت الموعد النهائي</span>
+                        </button>
+
+                        <!-- 6. المهام المستحقة اليوم -->
+                        <button type="button" onclick="applyStatCardFilter('DUE_TODAY')" id="stat-card-DUE_TODAY" class="frosted-card rounded-2xl p-4 text-right border border-orange-200/80 hover:border-ghazara-orange transition-all">
+                            <span class="text-xs font-bold text-ghazara-orange block">6. المستحقة اليوم</span>
+                            <span id="kpi-val-DUE_TODAY" class="font-display text-2xl sm:text-3xl font-extrabold text-ghazara-orange mt-1 block">0</span>
+                            <span class="text-[10px] text-ghazara-orange font-semibold">تستحق خلال اليوم</span>
+                        </button>
+
+                        <!-- 7. المستحقة خلال 7 أيام -->
+                        <button type="button" onclick="applyStatCardFilter('DUE_7DAYS')" id="stat-card-DUE_7DAYS" class="frosted-card rounded-2xl p-4 text-right border border-teal-200/80 hover:border-ghazara-teal transition-all">
+                            <span class="text-xs font-bold text-ghazara-teal block">7. خلال 7 أيام قادمة</span>
+                            <span id="kpi-val-DUE_7DAYS" class="font-display text-2xl sm:text-3xl font-extrabold text-ghazara-teal mt-1 block">0</span>
+                            <span class="text-[10px] text-ghazara-teal font-semibold">الأيام السبعة القادمة</span>
+                        </button>
+
+                        <!-- 8. العاجلة وعالية الأولوية -->
+                        <button type="button" onclick="applyStatCardFilter('URGENT_HIGH')" id="stat-card-URGENT_HIGH" class="frosted-card rounded-2xl p-4 text-right border border-rose-200/80 hover:border-rose-600 transition-all">
+                            <span class="text-xs font-bold text-rose-700 block">8. عاجلة وعالية الأولوية</span>
+                            <span id="kpi-val-URGENT_HIGH" class="font-display text-2xl sm:text-3xl font-extrabold text-rose-600 mt-1 block">0</span>
+                            <span class="text-[10px] text-rose-600 font-semibold">عاجلة جداً + عالية</span>
+                        </button>
+
+                        <!-- 9. تنتظر رداً من جهة أخرى -->
+                        <button type="button" onclick="applyStatCardFilter('WAITING_RESPONSE')" id="stat-card-WAITING_RESPONSE" class="frosted-card rounded-2xl p-4 text-right border border-amber-200/80 hover:border-amber-500 transition-all">
+                            <span class="text-xs font-bold text-amber-700 block">9. تنتظر رداً من جهة</span>
+                            <span id="kpi-val-WAITING_RESPONSE" class="font-display text-2xl sm:text-3xl font-extrabold text-amber-600 mt-1 block">0</span>
+                            <span class="text-[10px] text-amber-600 font-semibold">حالة: بانتظار رد</span>
+                        </button>
+
+                        <!-- 10. تنتظر اعتماد الإدارة التنفيذية -->
+                        <button type="button" onclick="applyStatCardFilter('WAITING_APPROVAL')" id="stat-card-WAITING_APPROVAL" class="frosted-card rounded-2xl p-4 text-right border border-purple-200/80 hover:border-ghazara-purple transition-all">
+                            <span class="text-xs font-bold text-ghazara-purple block">10. بانتظار اعتماد التنفيذية</span>
+                            <span id="kpi-val-WAITING_APPROVAL" class="font-display text-2xl sm:text-3xl font-extrabold text-ghazara-purple mt-1 block">0</span>
+                            <span class="text-[10px] text-ghazara-purple font-semibold">حالة: بانتظار اعتماد</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Search & Multi-Filter Engine -->
+                <div class="frosted-card rounded-[28px] p-5 sm:p-6 border-purple-200/80 space-y-4">
+                    <div class="flex flex-wrap items-center justify-between gap-2">
+                        <h3 class="text-sm font-bold text-ghazara-purpleDark">محرك البحث السريع والتصفية المتعددة والفرز</h3>
+                        <button type="button" onclick="resetAllTaskFilters()" class="text-xs font-bold text-red-600 bg-red-50 hover:bg-red-100 px-3.5 py-1.5 rounded-full border border-red-200 transition-all">
+                            إعادة ضبط الفلاتر ↺
+                        </button>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-xs sm:text-sm">
+                        <div class="sm:col-span-2">
+                            <label class="block text-xs font-bold text-slate-600 mb-1">بحث نصي فوري (العنوان، رقم المهمة، الوصف)</label>
+                            <input type="text" id="filterSearchInput" oninput="renderTasksList()" placeholder="ابحث بعنوان المهمة، رقمها (TSK-...)، أو كلمات الوصف..."
+                                class="w-full rounded-xl border border-purple-200 bg-white px-3.5 py-2.5 outline-none focus:border-ghazara-purple">
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-bold text-slate-600 mb-1">التصنيف الإداري</label>
+                            <select id="filterCategorySelect" onchange="handleDropdownCategoryChange(this.value)" class="w-full rounded-xl border border-purple-200 bg-white px-3 py-2.5 outline-none focus:border-ghazara-purple">
+                                <option value="ALL">جميع التصنيفات</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-bold text-slate-600 mb-1">الجهة المرتبطة</label>
+                            <select id="filterEntitySelect" onchange="renderTasksList()" class="w-full rounded-xl border border-purple-200 bg-white px-3 py-2.5 outline-none focus:border-ghazara-purple">
+                                <option value="ALL">جميع الجهات</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-bold text-slate-600 mb-1">الحالة الحالية</label>
+                            <select id="filterStatusSelect" onchange="renderTasksList()" class="w-full rounded-xl border border-purple-200 bg-white px-3 py-2.5 outline-none focus:border-ghazara-purple">
+                                <option value="ALL">جميع الحالات</option>
+                                <option value="جديدة">جديدة</option>
+                                <option value="لم يبدأ التنفيذ">لم يبدأ التنفيذ</option>
+                                <option value="قيد التنفيذ">قيد التنفيذ</option>
+                                <option value="بانتظار رد">بانتظار رد</option>
+                                <option value="بانتظار اعتماد">بانتظار اعتماد</option>
+                                <option value="مكتملة">مكتملة</option>
+                                <option value="مؤجلة">مؤجلة</option>
+                                <option value="ملغاة">ملغاة</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-bold text-slate-600 mb-1">الأولوية</label>
+                            <select id="filterPrioritySelect" onchange="renderTasksList()" class="w-full rounded-xl border border-purple-200 bg-white px-3 py-2.5 outline-none focus:border-ghazara-purple">
+                                <option value="ALL">جميع الأولويات</option>
+                                <option value="عاجلة جدًا">عاجلة جدًا</option>
+                                <option value="عالية">عالية</option>
+                                <option value="متوسطة">متوسطة</option>
+                                <option value="منخفضة">منخفضة</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-bold text-slate-600 mb-1">الفترة (من تاريخ استحقاق)</label>
+                            <input type="date" id="filterDateFrom" onchange="renderTasksList()" class="w-full rounded-xl border border-purple-200 bg-white px-3 py-2 outline-none focus:border-ghazara-purple">
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-bold text-slate-600 mb-1">إلى تاريخ استحقاق</label>
+                            <input type="date" id="filterDateTo" onchange="renderTasksList()" class="w-full rounded-xl border border-purple-200 bg-white px-3 py-2 outline-none focus:border-ghazara-purple">
+                        </div>
+                    </div>
+
+                    <div class="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-purple-100 text-xs">
+                        <div class="flex items-center gap-2">
+                            <span class="font-bold text-slate-600">ترتيب النتائج حسب:</span>
+                            <select id="sortTasksBy" onchange="renderTasksList()" class="rounded-xl border border-purple-200 bg-white px-3 py-1.5 font-bold text-ghazara-purpleDark">
+                                <option value="dueDate_asc">تاريخ الاستحقاق (الأقرب أولاً)</option>
+                                <option value="dueDate_desc">تاريخ الاستحقاق (الأبعد أولاً)</option>
+                                <option value="priority_desc">الأولوية (الأعلى إلحاحاً أولاً)</option>
+                                <option value="createdAt_desc">تاريخ الإنشاء (الأحدث أولاً)</option>
+                                <option value="updatedAt_desc">تاريخ آخر تحديث (الأحدث أولاً)</option>
+                            </select>
+                        </div>
+                        <div id="tasks-results-counter" class="font-bold text-ghazara-purple"></div>
+                    </div>
+                </div>
+
+                <!-- Main Tasks Table / Cards Container -->
+                <div class="frosted-card rounded-[28px] p-5 sm:p-6 border-purple-200/80 space-y-4">
+                    <div class="flex flex-wrap items-center justify-between gap-3">
+                        <div>
+                            <h3 id="current-category-heading" class="text-lg font-bold text-ghazara-purpleDark">جميع المهام</h3>
+                            <p id="current-category-subheading" class="text-xs text-slate-500">عرض وإدارة المهام وتحديث الحالات ونسب الإنجاز</p>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <button type="button" onclick="exportTasksToExcel()" class="text-xs font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 px-3.5 py-2 rounded-full border border-emerald-200">
+                                تصدير Excel (.xlsx)
+                            </button>
+                            <button type="button" onclick="exportTasksToCSV()" class="text-xs font-bold text-ghazara-purple bg-ghazara-purpleSoft px-3.5 py-2 rounded-full">
+                                تصدير CSV
+                            </button>
+                        </div>
+                    </div>
+
+                    <div id="tasks-list-container" class="space-y-3"></div>
+                </div>
+
+                <!-- 4 Operational Summary Sections: Urgent, Upcoming, Daily Summary, Latest Updates -->
+                <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                    <!-- 1. قسم المهام الأكثر إلحاحاً -->
+                    <div class="lg:col-span-6 frosted-card rounded-[28px] p-6 border-rose-200/80 space-y-4">
+                        <div class="flex items-center justify-between">
+                            <h3 class="text-base font-bold text-rose-700 flex items-center gap-2">
+                                <span class="w-2.5 h-2.5 rounded-full bg-rose-600 animate-ping"></span>
+                                <span>المهام الأكثر إلحاحًا (متأخرة وعاجلة جداً)</span>
+                            </h3>
+                            <span id="urgent-panel-count" class="text-xs font-bold px-2.5 py-0.5 rounded-full bg-rose-50 text-rose-700">0</span>
+                        </div>
+                        <div id="most-urgent-tasks-list" class="space-y-2.5 max-h-72 overflow-y-auto custom-scrollbar"></div>
+                    </div>
+
+                    <!-- 2. قسم المهام القادمة -->
+                    <div class="lg:col-span-6 frosted-card rounded-[28px] p-6 border-teal-200/80 space-y-4">
+                        <div class="flex items-center justify-between">
+                            <h3 class="text-base font-bold text-ghazara-teal flex items-center gap-2">
+                                <span class="w-2.5 h-2.5 rounded-full bg-ghazara-teal"></span>
+                                <span>المهام القادمة (خلال الأيام السبعة القادمة)</span>
+                            </h3>
+                            <span id="upcoming-panel-count" class="text-xs font-bold px-2.5 py-0.5 rounded-full bg-teal-50 text-ghazara-teal">0</span>
+                        </div>
+                        <div id="upcoming-tasks-list" class="space-y-2.5 max-h-72 overflow-y-auto custom-scrollbar"></div>
+                    </div>
+
+                    <!-- 3. ملخص يومي لحالة العمل -->
+                    <div class="lg:col-span-5 frosted-card rounded-[28px] p-6 border-purple-200/80 space-y-4">
+                        <h3 class="text-base font-bold text-ghazara-purpleDark flex items-center gap-2">
+                            <span class="w-2.5 h-2.5 rounded-full bg-ghazara-purple"></span>
+                            <span>الملخص اليومي لحالة العمل</span>
+                        </h3>
+                        <div id="daily-work-summary-box" class="space-y-3 text-xs sm:text-sm text-slate-700"></div>
+                    </div>
+
+                    <!-- 4. قائمة بآخر التحديثات (سجل التغييرات) -->
+                    <div class="lg:col-span-7 frosted-card rounded-[28px] p-6 border-orange-200/80 space-y-4">
+                        <div class="flex items-center justify-between">
+                            <h3 class="text-base font-bold text-ghazara-purpleDark flex items-center gap-2">
+                                <span class="w-2.5 h-2.5 rounded-full bg-ghazara-orange"></span>
+                                <span>قائمة آخر التحديثات وسجل التغييرات</span>
+                            </h3>
+                            <span class="text-[11px] text-slate-500">محفوظ في ورقة (سجل_التعديلات)</span>
+                        </div>
+                        <div id="latest-updates-list" class="space-y-2 max-h-72 overflow-y-auto custom-scrollbar text-xs"></div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- =================================================================
+                 VIEW 2: INTERACTIVE CALENDAR & SCHEDULING (التقويم التفاعلي بـ 3 عروض)
+            ================================================================== -->
+            <div id="workspace-view-calendar" class="hidden space-y-6">
+                <div class="frosted-card rounded-[28px] p-6 border-purple-200/80 space-y-5">
+                    <div class="flex flex-wrap items-center justify-between gap-4">
+                        <div>
+                            <span class="text-xs font-bold text-ghazara-purple">التقويم والجدولة التفاعلية</span>
+                            <h2 class="text-xl font-bold text-ghazara-purpleDark">جدول استحقاق المهام والمهام المتكررة</h2>
+                            <p class="text-xs text-slate-500">يمكنك نقل أي مهمة إلى تاريخ جديد مباشرة من التقويم مع حفظ الموعد الجديد وإعادة جدولة تذكيراتها تلقائياً.</p>
+                        </div>
+
+                        <!-- Calendar View Switcher: Daily, Weekly, Monthly -->
+                        <div class="flex items-center gap-2 bg-ghazara-purpleSoft/70 p-1.5 rounded-full border border-purple-200">
+                            <button type="button" onclick="setCalendarViewMode('day')" id="cal-mode-day" class="px-4 py-1.5 rounded-full text-xs font-bold transition-all">عرض يومي</button>
+                            <button type="button" onclick="setCalendarViewMode('week')" id="cal-mode-week" class="px-4 py-1.5 rounded-full text-xs font-bold transition-all">عرض أسبوعي</button>
+                            <button type="button" onclick="setCalendarViewMode('month')" id="cal-mode-month" class="px-4 py-1.5 rounded-full text-xs font-bold bg-ghazara-purple text-white transition-all">عرض شهري</button>
+                        </div>
+                    </div>
+
+                    <!-- Calendar Navigation Controls -->
+                    <div class="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-purple-100">
+                        <div class="flex items-center gap-2">
+                            <button type="button" onclick="navigateCalendar(-1)" class="px-3.5 py-2 rounded-xl bg-white border border-purple-200 text-xs font-bold hover:bg-purple-50">⟵ السابق</button>
+                            <button type="button" onclick="navigateCalendar(0)" class="px-4 py-2 rounded-xl bg-ghazara-purpleSoft text-ghazara-purple text-xs font-bold">اليوم</button>
+                            <button type="button" onclick="navigateCalendar(1)" class="px-3.5 py-2 rounded-xl bg-white border border-purple-200 text-xs font-bold hover:bg-purple-50">التالي ⟶</button>
+                        </div>
+                        <h3 id="calendar-period-title" class="text-base sm:text-lg font-bold text-ghazara-purpleDark"></h3>
+                        <div class="flex flex-wrap items-center gap-2 text-[11px] font-bold">
+                            <span class="px-2.5 py-1 rounded-full bg-red-100 text-red-700">متأخرة</span>
+                            <span class="px-2.5 py-1 rounded-full bg-rose-100 text-rose-700">عاجلة جداً</span>
+                            <span class="px-2.5 py-1 rounded-full bg-sky-100 text-sky-700">قيد التنفيذ</span>
+                            <span class="px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-700">مكتملة</span>
+                        </div>
+                    </div>
+
+                    <!-- Dynamic Calendar Container -->
+                    <div id="calendar-render-box" class="min-h-[420px]"></div>
+                </div>
+            </div>
+
+            <!-- =================================================================
+                 VIEW 3: NOTIFICATIONS & REMINDERS CENTER (مركز التذكيرات والجدولة الخلفية)
+            ================================================================== -->
+            <div id="workspace-view-reminders" class="hidden space-y-6">
+                <div class="frosted-card rounded-[28px] p-6 sm:p-8 border-purple-200/80 space-y-6">
+                    <div class="flex flex-wrap items-center justify-between gap-4">
+                        <div>
+                            <span class="text-xs font-bold text-ghazara-orange">نظام التذكيرات الفعلي (يعمل في الخلفية عبر Google Apps Script)</span>
+                            <h2 class="text-xl font-bold text-ghazara-purpleDark">إدارة التذكيرات، حالة الإرسال، واختبار البريد الإلكتروني</h2>
+                            <p class="text-xs text-slate-600">يتم تخزين وقت إرسال كل تذكير ونتيجته في ورقة (التذكيرات)، ومنع التكرار، وإعادة المحاولة عند الفشل حتى 3 مرات.</p>
+                        </div>
+                        <div class="flex flex-wrap items-center gap-2.5">
+                            <button type="button" onclick="triggerBackgroundSchedulerNow()" id="run-scheduler-btn" class="btn-purple-gradient text-xs font-bold px-5 py-2.5 rounded-full">
+                                تشغيل فحص التذكيرات والمجدول الآن ⚡
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Email Connection & Verification Status Banner -->
+                    <div class="p-5 rounded-3xl bg-white/90 border border-purple-200 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                        <div class="space-y-1">
+                            <div class="flex items-center gap-2">
+                                <span id="email-service-status-dot" class="w-2.5 h-2.5 rounded-full bg-amber-500"></span>
+                                <h3 id="email-service-status-title" class="text-sm font-bold text-ghazara-purpleDark">حالة خدمة البريد الإلكتروني: بانتظار اختبار الاتصال الفعلي</h3>
+                            </div>
+                            <p class="text-xs text-slate-600">
+                                يعتمد النظام على مصادقة Google Workspace / MailApp الآمنة داخل السكربت دون طلب أو تخزين أي كلمة مرور بريد شخصي. لا يتم تفعيل حالة البريد إلا بعد نجاح إرسال رسالة اختبار حقيقية.
+                            </p>
+                        </div>
+                        <div class="flex items-center gap-2 w-full md:w-auto">
+                            <input type="email" id="testEmailRecipientInput" dir="ltr" placeholder="your-email@domain.com" class="rounded-xl border border-purple-200 px-3.5 py-2 text-xs w-full md:w-56 outline-none">
+                            <button type="button" onclick="runRealEmailConnectionTest()" id="test-email-btn" class="btn-orange-gradient text-xs font-bold px-4 py-2.5 rounded-xl shrink-0">
+                                اختبار إرسال فعلي
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Reminders Log Table -->
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-right border-collapse text-xs sm:text-sm">
+                            <thead>
+                                <tr class="border-b border-purple-100 text-xs font-bold text-ghazara-purple bg-ghazara-purpleSoft/50">
+                                    <th class="p-3 rounded-tr-2xl">معرف التذكير</th>
+                                    <th class="p-3">رقم وعنوان المهمة</th>
+                                    <th class="p-3">المستلم</th>
+                                    <th class="p-3">نوع التذكير</th>
+                                    <th class="p-3">وقت الجدولة</th>
+                                    <th class="p-3">الوسيلة</th>
+                                    <th class="p-3">حالة الإرسال</th>
+                                    <th class="p-3">المحاولات</th>
+                                    <th class="p-3 rounded-tl-2xl">وقت ونتيجة الإرسال</th>
+                                </tr>
+                            </thead>
+                            <tbody id="reminders-table-body" class="divide-y divide-purple-100/60 text-slate-700"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- =================================================================
+                 VIEW 4: REPORTS & ANALYTICS (قسم التقارير والتصدير Excel / CSV / PDF)
+            ================================================================== -->
+            <div id="workspace-view-reports" class="hidden space-y-6">
+                <div class="frosted-card rounded-[28px] p-6 sm:p-8 border-purple-200/80 space-y-6">
+                    <div class="flex flex-wrap items-center justify-between gap-4 no-print">
+                        <div>
+                            <span class="text-xs font-bold text-ghazara-purple">التقارير ومؤشرات الأداء الفعلية</span>
+                            <h2 class="text-xl font-bold text-ghazara-purpleDark">تقارير الإنجاز، الالتزام بالمواعيد، وتحليل التصنيفات والجهات</h2>
+                        </div>
+                        <div class="flex flex-wrap items-center gap-2">
+                            <button type="button" onclick="exportTasksToExcel()" class="btn-teal-gradient text-xs font-bold px-4 py-2.5 rounded-full">
+                                تصدير Excel (.xlsx)
+                            </button>
+                            <button type="button" onclick="exportTasksToCSV()" class="btn-purple-gradient text-xs font-bold px-4 py-2.5 rounded-full">
+                                تصدير CSV
+                            </button>
+                            <button type="button" onclick="window.print()" class="btn-orange-gradient text-xs font-bold px-4 py-2.5 rounded-full">
+                                إصدار تقرير PDF / طباعة
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Period Selector for Report & Comparison -->
+                    <div class="grid grid-cols-1 sm:grid-cols-4 gap-3 bg-ghazara-purpleSoft/40 p-4 rounded-2xl border border-purple-100 text-xs no-print">
+                        <div>
+                            <label class="block font-bold text-slate-600 mb-1">بداية الفترة الحالية</label>
+                            <input type="date" id="reportStartDate" onchange="renderReportsView()" class="w-full rounded-xl border border-purple-200 bg-white px-3 py-2">
+                        </div>
+                        <div>
+                            <label class="block font-bold text-slate-600 mb-1">نهاية الفترة الحالية</label>
+                            <input type="date" id="reportEndDate" onchange="renderReportsView()" class="w-full rounded-xl border border-purple-200 bg-white px-3 py-2">
+                        </div>
+                        <div class="sm:col-span-2 flex items-end gap-2">
+                            <button type="button" onclick="setReportPresetDays(30)" class="px-3.5 py-2 rounded-xl bg-white border border-purple-200 font-bold hover:bg-purple-50">آخر 30 يوماً</button>
+                            <button type="button" onclick="setReportPresetDays(90)" class="px-3.5 py-2 rounded-xl bg-white border border-purple-200 font-bold hover:bg-purple-50">آخر 90 يوماً</button>
+                            <button type="button" onclick="setReportPresetDays(365)" class="px-3.5 py-2 rounded-xl bg-white border border-purple-200 font-bold hover:bg-purple-50">كل الفترات</button>
+                        </div>
+                    </div>
+
+                    <!-- Report Summary Metrics -->
+                    <div id="reports-summary-cards" class="grid grid-cols-2 sm:grid-cols-4 gap-4"></div>
+
+                    <!-- Breakdown Tables: By Category, By Entity, Incoming vs Outgoing, Delay Reasons -->
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <div class="p-5 rounded-3xl bg-white/90 border border-purple-100 space-y-3">
+                            <h3 class="text-sm font-bold text-ghazara-purpleDark">توزيع المهام ونسب الإنجاز حسب التصنيف الإداري</h3>
+                            <div id="report-by-category-box" class="space-y-2 text-xs"></div>
+                        </div>
+                        <div class="p-5 rounded-3xl bg-white/90 border border-purple-100 space-y-3">
+                            <h3 class="text-sm font-bold text-ghazara-purpleDark">توزيع المهام حسب الجهة المرتبطة ونوع المهمة (الواردة والصادرة)</h3>
+                            <div id="report-by-entity-type-box" class="space-y-2 text-xs"></div>
+                        </div>
+                        <div class="p-5 rounded-3xl bg-white/90 border border-purple-100 space-y-3">
+                            <h3 class="text-sm font-bold text-ghazara-purpleDark">المهام التي تنتظر اعتماداً أو رداً</h3>
+                            <div id="report-waiting-box" class="space-y-2 text-xs"></div>
+                        </div>
+                        <div class="p-5 rounded-3xl bg-white/90 border border-purple-100 space-y-3">
+                            <h3 class="text-sm font-bold text-ghazara-purpleDark">أسباب التأخير والتأجيل المسجلة ومقارنة الفترات</h3>
+                            <div id="report-delays-comparison-box" class="space-y-2 text-xs"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- =================================================================
+                 VIEW 5: PERSONAL & ADMINISTRATIVE SETTINGS (الإعدادات الشخصية والإدارية)
+            ================================================================== -->
+            <div id="workspace-view-settings" class="hidden space-y-6">
+                <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                    
+                    <!-- 1. الإعدادات الشخصية وتغيير كلمة المرور (مع التحقق من كلمة المرور الحالية) -->
+                    <div class="lg:col-span-6 frosted-card rounded-[28px] p-6 border-purple-200/80 space-y-5">
+                        <div>
+                            <span class="text-xs font-bold text-ghazara-purple">الحساب الشخصي والأمان</span>
+                            <h3 class="text-lg font-bold text-ghazara-purpleDark">الاسم الظاهر، اسم المستخدم، وتفضيلات الإشعارات</h3>
+                            <p class="text-xs text-slate-500">لا يُسمح بتعديل بيانات المصادقة الحساسة دون التحقق من كلمة المرور الحالية.</p>
+                        </div>
+
+                        <form id="settings-profile-form" onsubmit="handleSaveProfileSettings(event)" class="space-y-3.5 text-xs sm:text-sm">
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                <div>
+                                    <label class="block font-bold mb-1">الاسم الظاهر *</label>
+                                    <input type="text" id="setProfileName" required class="w-full rounded-xl border border-purple-200 bg-white px-3.5 py-2">
+                                </div>
+                                <div>
+                                    <label class="block font-bold mb-1">اسم المستخدم *</label>
+                                    <input type="text" id="setProfileUsername" required dir="ltr" class="w-full rounded-xl border border-purple-200 bg-white px-3.5 py-2 text-right">
+                                </div>
+                            </div>
+                            <div>
+                                <label class="block font-bold mb-1">البريد الإلكتروني للإشعارات والتقارير</label>
+                                <input type="email" id="setProfileEmail" dir="ltr" class="w-full rounded-xl border border-purple-200 bg-white px-3.5 py-2 text-right">
+                            </div>
+                            <div class="p-3.5 rounded-2xl bg-purple-50/60 border border-purple-100 space-y-2">
+                                <span class="block font-bold text-xs text-ghazara-purpleDark">تفضيلات الإشعارات والخصوصية:</span>
+                                <label class="flex items-center gap-2 cursor-pointer">
+                                    <input type="checkbox" id="setPrefInternal" checked class="accent-ghazara-purple">
+                                    <span>تفعيل الإشعارات الداخلية في اللوحة</span>
+                                </label>
+                                <label class="flex items-center gap-2 cursor-pointer">
+                                    <input type="checkbox" id="setPrefEmail" checked class="accent-ghazara-purple">
+                                    <span>استلام تذكيرات المهام والملخص اليومي عبر البريد الإلكتروني</span>
+                                </label>
+                                <label class="flex items-center gap-2 cursor-pointer">
+                                    <input type="checkbox" id="setPrefHideSensitive" class="accent-ghazara-purple">
+                                    <span>إخفاء التفاصيل الحساسة والملاحظات داخل نوافذ الإشعارات السريعة</span>
+                                </label>
+                            </div>
+                            <div>
+                                <label class="block font-bold text-ghazara-orange mb-1">كلمة المرور الحالية لتأكيد التعديل *</label>
+                                <input type="password" id="setProfileVerifyPass" required dir="ltr" placeholder="أدخل كلمة المرور الحالية للتحقق" class="w-full rounded-xl border border-orange-200 bg-white px-3.5 py-2 text-right">
+                            </div>
+                            <button type="submit" class="btn-purple-gradient font-bold px-6 py-2.5 rounded-full text-xs">
+                                حفظ بيانات الحساب الشخصي
+                            </button>
+                        </form>
+
+                        <!-- تغيير كلمة المرور -->
+                        <form id="settings-password-form" onsubmit="handleUpdatePasswordFromSettings(event)" class="pt-4 border-t border-purple-100 space-y-3 text-xs sm:text-sm">
+                            <h4 class="font-bold text-ghazara-purpleDark">تغيير كلمة المرور</h4>
+                            <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                                <input type="password" id="setOldPass" required placeholder="كلمة المرور الحالية *" class="rounded-xl border border-purple-200 bg-white px-3 py-2">
+                                <input type="password" id="setNewPass" required minlength="4" placeholder="كلمة المرور الجديدة *" class="rounded-xl border border-purple-200 bg-white px-3 py-2">
+                                <input type="password" id="setConfirmPass" required minlength="4" placeholder="تأكيد الجديدة *" class="rounded-xl border border-purple-200 bg-white px-3 py-2">
+                            </div>
+                            <button type="submit" class="btn-orange-gradient font-bold px-5 py-2 rounded-full text-xs">
+                                تحديث كلمة المرور
+                            </button>
+                        </form>
+                    </div>
+
+                    <!-- 2. إعدادات النظام والتذكيرات الافتراضية والمنطقة الزمنية -->
+                    <div class="lg:col-span-6 frosted-card rounded-[28px] p-6 border-purple-200/80 space-y-5">
+                        <div>
+                            <span class="text-xs font-bold text-ghazara-teal">إعدادات التذكيرات والجدولة والنسخ الاحتياطي</span>
+                            <h3 class="text-lg font-bold text-ghazara-purpleDark">ضوابط التذكير، المنطقة الزمنية، والنسخ الاحتياطي</h3>
+                        </div>
+
+                        <form onsubmit="handleSaveSystemSettings(event)" class="space-y-3.5 text-xs sm:text-sm">
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                <div>
+                                    <label class="block font-bold mb-1">المنطقة الزمنية للنظام</label>
+                                    <select id="sysTimezone" class="w-full rounded-xl border border-purple-200 bg-white px-3 py-2 font-display">
+                                        <option value="Asia/Aden">Asia/Aden (توقيت اليمن / عدن - سيئون)</option>
+                                        <option value="Asia/Riyadh">Asia/Riyadh (الرياض)</option>
+                                        <option value="Asia/Dubai">Asia/Dubai (دبي)</option>
+                                        <option value="Africa/Cairo">Africa/Cairo (القاهرة)</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block font-bold mb-1">التذكير الافتراضي قبل الاستحقاق (بالساعات)</label>
+                                    <input type="number" id="sysReminderHours" value="24" min="1" max="168" class="w-full rounded-xl border border-purple-200 bg-white px-3 py-2 font-display">
+                                </div>
+                            </div>
+
+                            <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-1">
+                                <label class="flex items-center gap-2 p-2.5 rounded-xl bg-white border border-purple-100 cursor-pointer">
+                                    <input type="checkbox" id="sysNotifEnabled" checked class="accent-ghazara-purple">
+                                    <span class="font-semibold">تفعيل الإشعارات</span>
+                                </label>
+                                <label class="flex items-center gap-2 p-2.5 rounded-xl bg-white border border-purple-100 cursor-pointer">
+                                    <input type="checkbox" id="sysDailySummary" checked class="accent-ghazara-purple">
+                                    <span class="font-semibold">الملخص اليومي</span>
+                                </label>
+                                <label class="flex items-center gap-2 p-2.5 rounded-xl bg-white border border-purple-100 cursor-pointer">
+                                    <input type="checkbox" id="sysWeeklyReport" checked class="accent-ghazara-purple">
+                                    <span class="font-semibold">التقرير الأسبوعي</span>
+                                </label>
+                            </div>
+
+                            <button type="submit" class="btn-teal-gradient font-bold px-6 py-2.5 rounded-full text-xs">
+                                حفظ إعدادات الجدولة والتذكيرات
+                            </button>
+                        </form>
+
+                        <!-- النسخ الاحتياطي وتصدير واستعادة البيانات -->
+                        <div class="pt-4 border-t border-purple-100 space-y-3">
+                            <div class="flex flex-wrap items-center justify-between gap-2">
+                                <h4 class="font-bold text-sm text-ghazara-purpleDark">النسخ الاحتياطي الدوري والاستعادة</h4>
+                                <div class="flex items-center gap-2">
+                                    <button type="button" onclick="createSystemBackupNow()" class="btn-purple-gradient text-xs font-bold px-4 py-2 rounded-full">
+                                        + إنشاء نسخة احتياطية الآن
+                                    </button>
+                                    <button type="button" onclick="downloadFullJSONBackup()" class="text-xs font-bold text-ghazara-purple bg-ghazara-purpleSoft px-3.5 py-2 rounded-full">
+                                        تنزيل ملف JSON
+                                    </button>
+                                </div>
+                            </div>
+                            <div id="backups-list-box" class="space-y-2 max-h-40 overflow-y-auto custom-scrollbar text-xs"></div>
+                        </div>
+
+                        <!-- معلومات إصدار التطبيق -->
+                        <div class="pt-3 border-t border-purple-100 flex flex-wrap items-center justify-between text-xs text-slate-500">
+                            <span>إصدار التطبيق: <strong class="font-display text-ghazara-purple">v2.5.0 Enterprise</strong></span>
+                            <span>قاعدة البيانات: <strong class="font-display">قاعدة بيانات غزارة</strong></span>
+                        </div>
+                    </div>
+
+                    <!-- 3. إدارة التصنيفات الإدارية (مع حماية العلاقات المرجعية) -->
+                    <div class="lg:col-span-6 frosted-card rounded-[28px] p-6 border-purple-200/80 space-y-4">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <h3 class="text-base font-bold text-ghazara-purpleDark">إدارة التصنيفات الإدارية</h3>
+                                <p class="text-[11px] text-slate-500">تعديل اسم التصنيف أو أرشفته يحافظ على جميع المهام المرتبطة به ولا يحذفها.</p>
+                            </div>
+                        </div>
+                        <form onsubmit="handleSaveCategoryForm(event)" class="grid grid-cols-1 sm:grid-cols-12 gap-2.5 text-xs">
+                            <input type="hidden" id="editCategoryId">
+                            <input type="text" id="editCategoryName" required placeholder="اسم التصنيف الإداري *" class="sm:col-span-6 rounded-xl border border-purple-200 bg-white px-3 py-2">
+                            <input type="color" id="editCategoryColor" value="#5B2C83" class="sm:col-span-2 h-9 w-full rounded-xl border border-purple-200 bg-white p-1">
+                            <button type="submit" class="sm:col-span-4 btn-purple-gradient font-bold py-2 rounded-xl">حفظ التصنيف</button>
+                        </form>
+                        <div id="settings-categories-list" class="space-y-2 max-h-64 overflow-y-auto custom-scrollbar text-xs"></div>
+                    </div>
+
+                    <!-- 4. إدارة الجهات المرتبطة والأولويات والحالات -->
+                    <div class="lg:col-span-6 frosted-card rounded-[28px] p-6 border-purple-200/80 space-y-4">
+                        <div>
+                            <h3 class="text-base font-bold text-ghazara-purpleDark">إدارة الجهات المرتبطة بالمهام</h3>
+                            <p class="text-[11px] text-slate-500">الجهات والأقسام الداخلية والخارجية المرتبطة بسير عمل المهام.</p>
+                        </div>
+                        <form onsubmit="handleSaveEntityForm(event)" class="grid grid-cols-1 sm:grid-cols-12 gap-2.5 text-xs">
+                            <input type="hidden" id="editEntityId">
+                            <input type="text" id="editEntityName" required placeholder="اسم الجهة أو القسم *" class="sm:col-span-5 rounded-xl border border-purple-200 bg-white px-3 py-2">
+                            <input type="text" id="editEntityContact" placeholder="مسؤول التواصل" class="sm:col-span-4 rounded-xl border border-purple-200 bg-white px-3 py-2">
+                            <button type="submit" class="sm:col-span-3 btn-orange-gradient font-bold py-2 rounded-xl">حفظ الجهة</button>
+                        </form>
+                        <div id="settings-entities-list" class="space-y-2 max-h-64 overflow-y-auto custom-scrollbar text-xs"></div>
+                    </div>
+
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- =========================================================================
+         MODAL 1: COMPREHENSIVE ADD / EDIT TASK FORM (نموذج إضافة وتعديل مهمة)
+    ========================================================================== -->
+    <div id="task-form-modal" class="fixed inset-0 z-50 hidden bg-slate-900/55 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4 overflow-y-auto no-print">
+        <div class="bg-white rounded-[32px] max-w-4xl w-full p-5 sm:p-8 border border-purple-200 shadow-2xl my-auto max-h-[92vh] overflow-y-auto custom-scrollbar space-y-5">
+            <div class="flex items-center justify-between pb-3 border-b border-purple-100">
+                <div>
+                    <span id="task-modal-badge" class="text-xs font-bold px-3 py-1 rounded-full bg-ghazara-purpleSoft text-ghazara-purple">نموذج المهام</span>
+                    <h2 id="task-modal-title" class="text-xl font-bold text-ghazara-purpleDark mt-1">إضافة مهمة جديدة</h2>
+                </div>
+                <button type="button" onclick="closeTaskModal()" class="w-9 h-9 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold">✕</button>
+            </div>
+
+            <!-- Form Validation Error Box -->
+            <div id="task-form-error" class="hidden p-4 rounded-2xl bg-red-50 border border-red-200 text-red-700 text-xs sm:text-sm font-bold"></div>
+
+            <form id="task-main-form" onsubmit="handleSaveTaskForm(event)" class="space-y-5 text-xs sm:text-sm">
+                <!-- Row 1: Auto Task ID, Creation Date, Last Updated -->
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3.5 bg-purple-50/50 p-3.5 rounded-2xl border border-purple-100">
+                    <div>
+                        <label class="block text-[11px] font-bold text-slate-500 mb-1">رقم المهمة الفريد (تلقائي)</label>
+                        <input type="text" id="formTaskId" readonly class="w-full rounded-xl bg-white border border-purple-200 px-3 py-2 font-display font-bold text-ghazara-purple">
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-bold text-slate-500 mb-1">تاريخ الإنشاء</label>
+                        <input type="text" id="formCreatedAt" readonly class="w-full rounded-xl bg-white border border-purple-100 px-3 py-2 font-display text-slate-600">
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-bold text-slate-500 mb-1">تاريخ آخر تحديث</label>
+                        <input type="text" id="formUpdatedAt" readonly class="w-full rounded-xl bg-white border border-purple-100 px-3 py-2 font-display text-slate-600">
+                    </div>
+                </div>
+
+                <!-- Row 2: Title & Category (Required) -->
+                <div class="grid grid-cols-1 sm:grid-cols-12 gap-4">
+                    <div class="sm:col-span-7">
+                        <label class="block font-bold text-ghazara-purpleDark mb-1.5">عنوان المهمة <span class="text-red-600">* (أساسي)</span></label>
+                        <input type="text" id="formTitle" required placeholder="اكتب عنواناً واضحاً ومباشراً للمهمة..." class="w-full rounded-xl border border-purple-200 px-3.5 py-2.5 outline-none focus:border-ghazara-purple">
+                    </div>
+                    <div class="sm:col-span-5">
+                        <label class="block font-bold text-ghazara-purpleDark mb-1.5">التصنيف الإداري <span class="text-red-600">* (أساسي)</span></label>
+                        <select id="formCategoryId" required class="w-full rounded-xl border border-purple-200 px-3.5 py-2.5 outline-none focus:border-ghazara-purple"></select>
+                    </div>
+                </div>
+
+                <!-- Row 3: Description -->
+                <div>
+                    <label class="block font-bold text-ghazara-purpleDark mb-1.5">وصف المهمة التفصيلي</label>
+                    <textarea id="formDescription" rows="2" placeholder="شرح تفصيلي للمطلوب تنفيذه والمخرجات المتوقعة..." class="w-full rounded-xl border border-purple-200 px-3.5 py-2.5 outline-none focus:border-ghazara-purple"></textarea>
+                </div>
+
+                <!-- Row 4: Entity, Task Type, Source, Assignee -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
+                    <div>
+                        <label class="block font-bold text-ghazara-purpleDark mb-1.5">الجهة المرتبطة بالمهمة</label>
+                        <select id="formEntityId" class="w-full rounded-xl border border-purple-200 px-3 py-2.5 outline-none focus:border-ghazara-purple"></select>
+                    </div>
+                    <div>
+                        <label class="block font-bold text-ghazara-purpleDark mb-1.5">نوع المهمة</label>
+                        <select id="formTaskType" class="w-full rounded-xl border border-purple-200 px-3 py-2.5 outline-none focus:border-ghazara-purple">
+                            <option value="واردة">واردة</option>
+                            <option value="صادرة">صادرة</option>
+                            <option value="داخلية">داخلية</option>
+                            <option value="متابعة">متابعة</option>
+                            <option value="دورية">دورية</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block font-bold text-ghazara-purpleDark mb-1.5">مصدر المهمة</label>
+                        <input type="text" id="formSource" placeholder="مثال: اجتماع الإدارة، كتاب رسمي..." class="w-full rounded-xl border border-purple-200 px-3 py-2.5 outline-none focus:border-ghazara-purple">
+                    </div>
+                    <div>
+                        <label class="block font-bold text-ghazara-purpleDark mb-1.5">الشخص المسؤول عن التنفيذ</label>
+                        <input type="text" id="formAssignee" list="assignees-datalist" placeholder="اسم الموظف المسؤول" class="w-full rounded-xl border border-purple-200 px-3 py-2.5 outline-none focus:border-ghazara-purple">
+                        <datalist id="assignees-datalist"></datalist>
+                    </div>
+                </div>
+
+                <!-- Row 5: Start Date, Due Date (Required), Due Time, Priority (Required) -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
+                    <div>
+                        <label class="block font-bold text-ghazara-purpleDark mb-1.5">تاريخ بدء التنفيذ</label>
+                        <input type="date" id="formStartDate" class="w-full rounded-xl border border-purple-200 px-3 py-2.5 outline-none focus:border-ghazara-purple">
+                    </div>
+                    <div>
+                        <label class="block font-bold text-ghazara-purpleDark mb-1.5">الموعد النهائي <span class="text-red-600">* (أساسي)</span></label>
+                        <input type="date" id="formDueDate" required class="w-full rounded-xl border border-purple-200 px-3 py-2.5 outline-none focus:border-ghazara-purple">
+                    </div>
+                    <div>
+                        <label class="block font-bold text-ghazara-purpleDark mb-1.5">وقت الاستحقاق (عند الحاجة)</label>
+                        <input type="time" id="formDueTime" value="14:00" class="w-full rounded-xl border border-purple-200 px-3 py-2.5 outline-none focus:border-ghazara-purple">
+                    </div>
+                    <div>
+                        <label class="block font-bold text-ghazara-purpleDark mb-1.5">الأولوية <span class="text-red-600">* (أساسي)</span></label>
+                        <select id="formPriority" required class="w-full rounded-xl border border-purple-200 px-3 py-2.5 font-bold outline-none focus:border-ghazara-purple">
+                            <option value="عاجلة جدًا">عاجلة جدًا</option>
+                            <option value="عالية">عالية</option>
+                            <option value="متوسطة" selected>متوسطة</option>
+                            <option value="منخفضة">منخفضة</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Row 6: Status & Progress Slider & Postpone Reason -->
+                <div class="grid grid-cols-1 sm:grid-cols-12 gap-4 p-4 rounded-2xl bg-slate-50 border border-slate-200">
+                    <div class="sm:col-span-5">
+                        <label class="block font-bold text-ghazara-purpleDark mb-1.5">الحالة الحالية</label>
+                        <select id="formStatus" onchange="handleFormStatusChange(this.value)" class="w-full rounded-xl border border-purple-200 bg-white px-3 py-2.5 font-bold outline-none focus:border-ghazara-purple">
+                            <option value="جديدة">جديدة</option>
+                            <option value="لم يبدأ التنفيذ">لم يبدأ التنفيذ</option>
+                            <option value="قيد التنفيذ">قيد التنفيذ</option>
+                            <option value="بانتظار رد">بانتظار رد</option>
+                            <option value="بانتظار اعتماد">بانتظار اعتماد</option>
+                            <option value="مكتملة">مكتملة</option>
+                            <option value="مؤجلة">مؤجلة</option>
+                            <option value="ملغاة">ملغاة</option>
+                        </select>
+                    </div>
+                    <div class="sm:col-span-7">
+                        <div class="flex items-center justify-between mb-1.5">
+                            <label class="font-bold text-ghazara-purpleDark">نسبة الإنجاز</label>
+                            <span id="formProgressLabel" class="font-display font-extrabold text-ghazara-purple">0%</span>
+                        </div>
+                        <input type="range" id="formProgress" min="0" max="100" step="5" value="0" oninput="document.getElementById('formProgressLabel').textContent = this.value + '%'" class="w-full accent-ghazara-purple cursor-pointer">
+                    </div>
+                    <div id="postpone-reason-wrap" class="sm:col-span-12 hidden pt-2 border-t border-amber-200">
+                        <label class="block font-bold text-amber-800 mb-1">سبب التأجيل / التأخير (يُحفظ في سجل التغييرات مع الاحتفاظ بالموعد السابق) *</label>
+                        <input type="text" id="formPostponeReason" placeholder="اذكر سبب تأجيل المهمة..." class="w-full rounded-xl border border-amber-300 bg-white px-3.5 py-2">
+                    </div>
+                </div>
+
+                <!-- Row 7: Subtasks (الخطوات الفرعية) & Related Tasks (المهام المرتبطة) -->
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                    <div class="p-4 rounded-2xl border border-purple-100 bg-white space-y-2.5">
+                        <label class="block font-bold text-ghazara-purpleDark">الخطوات والمهام الفرعية</label>
+                        <div class="flex gap-2">
+                            <input type="text" id="newSubtaskInput" placeholder="أضف خطوة فرعية..." class="flex-grow rounded-xl border border-purple-200 px-3 py-1.5">
+                            <button type="button" onclick="addSubtaskItem()" class="px-3.5 py-1.5 rounded-xl bg-ghazara-purpleSoft text-ghazara-purple font-bold">+ إضافة</button>
+                        </div>
+                        <div id="form-subtasks-list" class="space-y-1.5 max-h-36 overflow-y-auto custom-scrollbar"></div>
+                    </div>
+
+                    <div class="p-4 rounded-2xl border border-purple-100 bg-white space-y-2.5">
+                        <label class="block font-bold text-ghazara-purpleDark">المرفقات والروابط ومستندات المهمة</label>
+                        <div class="grid grid-cols-1 sm:grid-cols-12 gap-2">
+                            <input type="text" id="newAttachmentTitle" placeholder="عنوان المرفق" class="sm:col-span-5 rounded-xl border border-purple-200 px-3 py-1.5">
+                            <input type="text" id="newAttachmentUrl" dir="ltr" placeholder="https://..." class="sm:col-span-5 rounded-xl border border-purple-200 px-3 py-1.5 text-right">
+                            <button type="button" onclick="addAttachmentItem()" class="sm:col-span-2 py-1.5 rounded-xl bg-ghazara-orangeSoft text-ghazara-orange font-bold">+ ربط</button>
+                        </div>
+                        <div id="form-attachments-list" class="space-y-1.5 max-h-36 overflow-y-auto custom-scrollbar"></div>
+                    </div>
+                </div>
+
+                <!-- Row 8: Related Tasks, Notes, Responses -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block font-bold text-ghazara-purpleDark mb-1.5">أرقام المهام المرتبطة (افصل بينها بفاصلة)</label>
+                        <input type="text" id="formRelatedTasks" placeholder="مثال: TSK-2026-0001, TSK-2026-0002" class="w-full rounded-xl border border-purple-200 px-3.5 py-2">
+                    </div>
+                    <div>
+                        <label class="block font-bold text-ghazara-purpleDark mb-1.5">ملاحظات إضافية</label>
+                        <input type="text" id="formNotes" placeholder="أي ملاحظات أو توصيات..." class="w-full rounded-xl border border-purple-200 px-3.5 py-2">
+                    </div>
+                </div>
+
+                <!-- Row 9: Reminder & Recurrence Settings -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 p-4 rounded-2xl bg-purple-50/40 border border-purple-100">
+                    <div>
+                        <label class="block font-bold text-ghazara-purpleDark mb-1">تاريخ ووقت التذكير</label>
+                        <input type="datetime-local" id="formReminderDateTime" class="w-full rounded-xl border border-purple-200 bg-white px-2.5 py-2 text-xs">
+                    </div>
+                    <div>
+                        <label class="block font-bold text-ghazara-purpleDark mb-1">وسيلة التذكير</label>
+                        <select id="formReminderMethod" class="w-full rounded-xl border border-purple-200 bg-white px-2.5 py-2">
+                            <option value="كلاهما">داخلي + بريد إلكتروني</option>
+                            <option value="داخلي">إشعار داخلي فقط</option>
+                            <option value="بريد إلكتروني">بريد إلكتروني فقط</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block font-bold text-ghazara-purpleDark mb-1">تكرار المهمة</label>
+                        <select id="formRecurrencePattern" class="w-full rounded-xl border border-purple-200 bg-white px-2.5 py-2">
+                            <option value="بدون">بدون تكرار</option>
+                            <option value="يومي">يومي</option>
+                            <option value="أسبوعي">أسبوعي</option>
+                            <option value="شهري">شهري</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block font-bold text-ghazara-purpleDark mb-1">بداية التكرار</label>
+                        <input type="date" id="formRecurrenceStart" class="w-full rounded-xl border border-purple-200 bg-white px-2.5 py-2">
+                    </div>
+                    <div>
+                        <label class="block font-bold text-ghazara-purpleDark mb-1">نهاية التكرار</label>
+                        <input type="date" id="formRecurrenceEnd" class="w-full rounded-xl border border-purple-200 bg-white px-2.5 py-2">
+                    </div>
+                </div>
+
+                <!-- Modal Footer Actions -->
+                <div class="flex flex-wrap items-center justify-between gap-3 pt-4 border-t border-purple-100">
+                    <div id="task-history-badges" class="text-[11px] text-slate-500"></div>
+                    <div class="flex items-center gap-3">
+                        <button type="button" onclick="closeTaskModal()" class="px-5 py-2.5 rounded-full text-xs font-bold text-slate-600 bg-slate-100 hover:bg-slate-200">
+                            إلغاء
+                        </button>
+                        <button type="submit" id="save-task-submit-btn" class="btn-purple-gradient px-8 py-3 rounded-full text-xs sm:text-sm font-bold flex items-center gap-2">
+                            <span id="save-task-spinner" class="spinner hidden"></span>
+                            <span id="save-task-btn-text">حفظ المهمة في قاعدة البيانات</span>
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- =========================================================================
+         MODAL 2: POSTPONE / RESCHEDULE / RESPONSES / CONFIRM DELETE MODAL
+    ========================================================================== -->
+    <div id="task-action-modal" class="fixed inset-0 z-50 hidden bg-slate-900/55 backdrop-blur-sm flex items-center justify-center p-4 no-print">
+        <div class="bg-white rounded-3xl max-w-lg w-full p-6 sm:p-7 border border-purple-200 shadow-2xl space-y-4">
+            <div class="flex items-center justify-between border-b border-purple-100 pb-3">
+                <h3 id="action-modal-title" class="text-lg font-bold text-ghazara-purpleDark">إجراء على المهمة</h3>
+                <button type="button" onclick="closeActionModal()" class="text-slate-400 hover:text-slate-600 font-bold">✕</button>
+            </div>
+            <div id="action-modal-body" class="space-y-4 text-sm"></div>
+        </div>
+    </div>
+
+    <script src="../assets/js/app.js"></script>
+    <script src="../assets/js/tasks-dashboard.js"></script>
+</body>
+</html>

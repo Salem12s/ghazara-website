@@ -1,0 +1,1591 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>بوابة موظفي غزارة | المنظومة الإدارية والمبيعات والموارد البشرية والتسويق</title>
+    <meta name="robots" content="noindex, nofollow">
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="../assets/js/tailwind-config.js"></script>
+    <link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body class="min-h-screen flex flex-col selection:bg-ghazara-purple selection:text-white">
+
+    <!-- Ambient Aurora -->
+    <div class="aurora-canvas" aria-hidden="true">
+        <div class="aurora-orb aurora-orb-1"></div>
+        <div class="aurora-orb aurora-orb-2"></div>
+        <div class="aurora-orb aurora-orb-3"></div>
+    </div>
+
+    <!-- Toast Notification Container -->
+    <div id="portal-toast" class="fixed bottom-5 left-5 z-50 hidden max-w-md rounded-2xl p-4 shadow-xl border text-sm font-bold transition-all"></div>
+
+    <!-- Portal Top Navigation Bar -->
+    <header class="sticky top-0 z-40 bg-white/85 backdrop-blur-xl border-b border-purple-100">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between gap-4">
+            <div class="flex items-center gap-4">
+                <a href="../index.html" class="flex items-center gap-2.5">
+                    <div class="flex flex-col items-end leading-none">
+                        <span class="text-xl font-bold text-ghazara-purple">غزارة</span>
+                        <span class="font-display text-xs font-extrabold text-ghazara-orange">ERP PORTAL</span>
+                    </div>
+                </a>
+                <span class="h-6 w-px bg-purple-200 hidden sm:inline-block"></span>
+                <div class="hidden sm:block">
+                    <h1 id="header-role-title" class="text-sm sm:text-base font-bold text-ghazara-purpleDark">
+                        بوابة موظفي غزارة
+                    </h1>
+                    <p id="header-dept-subtitle" class="text-xs text-slate-500"></p>
+                </div>
+            </div>
+
+            <!-- Action Links & Logged-in Employee Profile -->
+            <div class="flex items-center gap-2.5 sm:gap-3">
+                <a href="tasks.html" class="btn-orange-gradient text-xs sm:text-sm font-bold px-4 py-2.5 rounded-full inline-flex items-center gap-2 shadow-sm">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/>
+                    </svg>
+                    <span>لوحة المهام المشتركة</span>
+                </a>
+
+                <div class="hidden md:block text-left sm:text-right bg-ghazara-purpleSoft/60 px-4 py-1.5 rounded-2xl border border-purple-200/60">
+                    <div class="flex items-center gap-2">
+                        <span id="user-emp-name" class="text-xs sm:text-sm font-bold text-ghazara-purpleDark">الموظف</span>
+                        <span id="user-role-badge" class="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-ghazara-purple text-white">الوظيفة</span>
+                    </div>
+                    <div id="user-email-display" class="font-display text-[11px] text-slate-500"></div>
+                </div>
+
+                <button onclick="logoutPortal()" class="text-xs sm:text-sm font-bold text-red-600 bg-red-50 hover:bg-red-100 px-4 py-2.5 rounded-full border border-red-200 transition-all">
+                    تسجيل خروج
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+        
+        <!-- Welcome & Quick Access Banner -->
+        <div class="frosted-card rounded-[28px] p-6 sm:p-8 border-purple-200/80 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
+            <div class="space-y-1.5">
+                <div class="inline-flex items-center gap-2 text-xs font-bold text-ghazara-purple">
+                    <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                    <span>المنظومة الإدارية الموحدة — غزارة للتجارة والتسويق</span>
+                </div>
+                <h2 id="banner-welcome-heading" class="text-xl sm:text-2xl font-bold text-ghazara-purpleDark">
+                    مرحباً بك في بوابة غزارة
+                </h2>
+                <p id="banner-role-desc" class="text-sm text-slate-600"></p>
+            </div>
+
+            <div class="flex flex-wrap items-center gap-3 shrink-0">
+                <button onclick="switchRoleTab('leaves')" class="btn-teal-gradient text-xs sm:text-sm font-bold px-5 py-3 rounded-full inline-flex items-center gap-2">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                    </svg>
+                    <span>طلب إجازة سنوية</span>
+                </button>
+                <a href="tasks.html" class="btn-purple-gradient text-xs sm:text-sm font-bold px-5 py-3 rounded-full inline-flex items-center gap-2">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                    </svg>
+                    <span>لوحة مهام الشؤون الإدارية والتسويق ⟵</span>
+                </a>
+            </div>
+        </div>
+
+        <!-- Role-Based Navigation Tabs -->
+        <div id="role-tabs-container" class="flex flex-wrap items-center gap-2.5 border-b border-purple-200/60 pb-4"></div>
+
+        <!-- ===================================================================
+             1. منظومة الإدارة العامة والتنفيذية (EXECUTIVE OVERVIEW)
+        ==================================================================== -->
+        <section id="tab-section-executive" class="portal-tab-section hidden space-y-6">
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+                <div onclick="switchRoleTab('hr')" class="frosted-card rounded-3xl p-6 border-teal-200/80 cursor-pointer hover:border-ghazara-teal">
+                    <span class="text-xs font-bold text-ghazara-teal">1. منظومة الموارد البشرية (HR)</span>
+                    <p id="exec-kpi-staff" class="font-display text-3xl font-extrabold text-ghazara-teal mt-2">0</p>
+                    <span class="text-[11px] text-slate-500">كادر وظيفي | طلبات الإجازات: <strong id="exec-kpi-leaves">0</strong></span>
+                </div>
+                <div onclick="switchRoleTab('sales')" class="frosted-card rounded-3xl p-6 border-orange-200/80 cursor-pointer hover:border-ghazara-orange">
+                    <span class="text-xs font-bold text-ghazara-orange">2. منظومة المبيعات (CRM)</span>
+                    <p id="exec-kpi-leads" class="font-display text-3xl font-extrabold text-ghazara-orange mt-2">0</p>
+                    <span class="text-[11px] text-slate-500">فرصة بيعية مسجلة وقيد المتابعة</span>
+                </div>
+                <div onclick="switchRoleTab('field_marketing')" class="frosted-card rounded-3xl p-6 border-purple-200/80 cursor-pointer hover:border-ghazara-purple">
+                    <span class="text-xs font-bold text-ghazara-purple">3. منظومة التسويق والميداني</span>
+                    <p id="exec-kpi-visits" class="font-display text-3xl font-extrabold text-ghazara-purpleDark mt-2">0</p>
+                    <span class="text-[11px] text-slate-500">زيارات ميدانية وحملات تسويقية</span>
+                </div>
+                <div onclick="switchRoleTab('finance')" class="frosted-card rounded-3xl p-6 border-emerald-200/80 cursor-pointer hover:border-emerald-500">
+                    <span class="text-xs font-bold text-emerald-700">4. المالية والاستوديو والمهام</span>
+                    <div class="mt-2 flex items-center justify-between">
+                        <span id="exec-kpi-creative" class="font-display text-2xl font-extrabold text-emerald-700">0</span>
+                        <a href="tasks.html" onclick="event.stopPropagation()" class="text-xs font-bold text-ghazara-purple bg-ghazara-purpleSoft px-3 py-1 rounded-full hover:bg-ghazara-purple hover:text-white transition-all">
+                            لوحة المهام ⟵
+                        </a>
+                    </div>
+                    <span class="text-[11px] text-slate-500 block mt-1">أعمال التصميم والمونتاج والمالية</span>
+                </div>
+            </div>
+
+            <!-- Architecture Directory of the 10 Approved Roles -->
+            <div class="frosted-card rounded-[28px] p-6 sm:p-8 border-purple-200/80 space-y-4">
+                <div class="flex flex-wrap items-center justify-between gap-2">
+                    <div>
+                        <span class="text-xs font-bold text-ghazara-purple">الهيكل التأسيسي المعتمد للنظام</span>
+                        <h3 class="text-lg font-bold text-ghazara-purpleDark">توزيع المسميات الوظيفية العشرة والأقسام الأربعة في بوابة غزارة</h3>
+                    </div>
+                    <span class="text-xs font-bold bg-emerald-50 text-emerald-700 px-3.5 py-1 rounded-full border border-emerald-200">نواة النظام جاهزة للتوسع</span>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 text-xs">
+                    <div class="p-4 rounded-2xl bg-purple-50/60 border border-purple-200 space-y-2">
+                        <div class="font-bold text-sm text-ghazara-purpleDark">1. الإدارة العامة والمالية</div>
+                        <ul class="space-y-1 text-slate-700">
+                            <li>• <strong>المدير التنفيذي:</strong> إشراف كامل واعتمادات</li>
+                            <li>• <strong>محاسب:</strong> الفواتير، التحصيلات، والمصروفات</li>
+                        </ul>
+                    </div>
+                    <div class="p-4 rounded-2xl bg-teal-50/60 border border-teal-200 space-y-2">
+                        <div class="font-bold text-sm text-ghazara-teal">2. الموارد البشرية (HR)</div>
+                        <ul class="space-y-1 text-slate-700">
+                            <li>• <strong>مدير الموارد البشرية:</strong> إدارة الكادر الوظيفي، الأرصدة، واعتماد الإجازات السنوية</li>
+                        </ul>
+                    </div>
+                    <div class="p-4 rounded-2xl bg-orange-50/60 border border-orange-200 space-y-2">
+                        <div class="font-bold text-sm text-ghazara-orange">3. منظومة المبيعات (CRM)</div>
+                        <ul class="space-y-1 text-slate-700">
+                            <li>• <strong>مدير المبيعات:</strong> توزيع الفرص وإشراف المبيعات</li>
+                            <li>• <strong>موظف مبيعات:</strong> متابعة العملاء وإغلاق الصفقات</li>
+                        </ul>
+                    </div>
+                    <div class="p-4 rounded-2xl bg-indigo-50/60 border border-indigo-200 space-y-2">
+                        <div class="font-bold text-sm text-indigo-800">4. التسويق والاستوديو الإبداعي</div>
+                        <ul class="space-y-1 text-slate-700">
+                            <li>• <strong>مدير التسويق</strong> & <strong>موظف تسويق</strong></li>
+                            <li>• <strong>موظف تسويق ميداني</strong> (زيارات واستقطاب)</li>
+                            <li>• <strong>مصمم</strong> & <strong>موظف مونتاج</strong></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ===================================================================
+             2. منظومة الموارد البشرية (HR SYSTEM)
+        ==================================================================== -->
+        <section id="tab-section-hr" class="portal-tab-section hidden space-y-6">
+            <div class="frosted-card rounded-[28px] p-6 border-teal-200/90 bg-teal-50/40 flex flex-wrap items-center justify-between gap-4">
+                <div>
+                    <span class="text-xs font-bold text-ghazara-teal">منظومة الموارد البشرية والشؤون الإدارية (HR Module)</span>
+                    <h2 class="text-lg font-bold text-ghazara-purpleDark">إدارة الكادر الوظيفي، المسميات العشرة، والإجازات السنوية</h2>
+                    <p class="text-xs text-slate-600">ترتبط كافة السجلات مباشرة بأوراق (HR_Staff) و(المستخدمين) و(طلبات_الاجازات) في قاعدة البيانات.</p>
+                </div>
+                <div class="flex flex-wrap items-center gap-2.5">
+                    <button onclick="switchRoleTab('leaves')" class="btn-teal-gradient text-xs font-bold px-5 py-2.5 rounded-full">
+                        إدارة وطلب الإجازات السنوية
+                    </button>
+                    <a href="tasks.html" class="btn-purple-gradient text-xs font-bold px-5 py-2.5 rounded-full">
+                        لوحة مهام الشؤون الإدارية ⟵
+                    </a>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+                <div class="lg:col-span-4 frosted-card rounded-[28px] p-6 sm:p-8 border-purple-200/80 space-y-4">
+                    <h3 class="text-lg font-bold text-ghazara-purpleDark">إضافة موظف جديد للنظام</h3>
+                    <form id="hr-employee-form" onsubmit="handleAddEmployee(event)" class="space-y-4 text-sm">
+                        <div>
+                            <label class="block font-bold mb-1">اسم الموظف *</label>
+                            <input type="text" id="empName" required placeholder="الاسم الرباعي" class="w-full rounded-xl border border-purple-200 px-3.5 py-2.5 outline-none focus:border-ghazara-purple">
+                        </div>
+                        <div>
+                            <label class="block font-bold mb-1">المسمى الوظيفي المعتمد (من الـ 10 مسميات) *</label>
+                            <select id="empRole" required class="w-full rounded-xl border border-purple-200 px-3.5 py-2.5 outline-none focus:border-ghazara-purple">
+                                <option value="المدير التنفيذي">1. المدير التنفيذي</option>
+                                <option value="مدير المبيعات">2. مدير المبيعات</option>
+                                <option value="مدير الموارد البشرية">3. مدير الموارد البشرية</option>
+                                <option value="موظف مبيعات">4. موظف مبيعات</option>
+                                <option value="مدير التسويق">5. مدير التسويق</option>
+                                <option value="موظف تسويق">6. موظف تسويق</option>
+                                <option value="مصمم">7. مصمم</option>
+                                <option value="محاسب">8. محاسب</option>
+                                <option value="موظف مونتاج">9. موظف مونتاج</option>
+                                <option value="موظف تسويق ميداني">10. موظف تسويق ميداني</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block font-bold mb-1">المنظومة / القسم *</label>
+                            <select id="empDept" required class="w-full rounded-xl border border-purple-200 px-3.5 py-2.5 outline-none focus:border-ghazara-purple">
+                                <option value="الإدارة العامة والتنفيذية">الإدارة العامة والتنفيذية</option>
+                                <option value="الموارد البشرية">الموارد البشرية</option>
+                                <option value="المبيعات وتطوير الأعمال">المبيعات وتطوير الأعمال</option>
+                                <option value="التسويق الرقمي">التسويق الرقمي</option>
+                                <option value="التسويق الميداني">التسويق الميداني</option>
+                                <option value="استوديو التصميم والمونتاج">استوديو التصميم والمونتاج</option>
+                                <option value="المالية والحسابات">المالية والحسابات</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block font-bold mb-1">رقم الهاتف *</label>
+                            <input type="tel" id="empPhone" required dir="ltr" placeholder="+967 7..." class="w-full rounded-xl border border-purple-200 px-3.5 py-2.5 text-right outline-none focus:border-ghazara-purple">
+                        </div>
+                        <div>
+                            <label class="block font-bold mb-1">رصيد الإجازة السنوية (بالأيام)</label>
+                            <input type="number" id="empLeaveBalance" value="30" min="0" max="90" class="w-full rounded-xl border border-purple-200 px-3.5 py-2.5 outline-none focus:border-ghazara-purple">
+                        </div>
+                        <button type="submit" id="hr-add-emp-btn" class="w-full btn-purple-gradient font-bold py-3 rounded-full">
+                            حفظ في سجل الموارد البشرية
+                        </button>
+                    </form>
+                </div>
+
+                <div class="lg:col-span-8 frosted-card rounded-[28px] p-6 sm:p-8 border-purple-200/80">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-lg font-bold text-ghazara-purpleDark">قائمة الكادر الوظيفي والمسميات العشرة</h3>
+                        <button onclick="syncDataFromGoogleSheets()" class="text-xs font-bold text-ghazara-teal hover:underline">تحديث القائمة ↻</button>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-right border-collapse text-sm">
+                            <thead>
+                                <tr class="border-b border-purple-100 text-xs font-bold text-ghazara-purple bg-ghazara-purpleSoft/50">
+                                    <th class="p-3.5 rounded-tr-2xl">الرقم الوظيفي</th>
+                                    <th class="p-3.5">الاسم</th>
+                                    <th class="p-3.5">المسمى الوظيفي</th>
+                                    <th class="p-3.5">القسم</th>
+                                    <th class="p-3.5">الهاتف</th>
+                                    <th class="p-3.5">رصيد الإجازات</th>
+                                    <th class="p-3.5 rounded-tl-2xl">الحالة</th>
+                                </tr>
+                            </thead>
+                            <tbody id="hr-table-body" class="divide-y divide-purple-100/60 text-slate-700"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ===================================================================
+             2-B. نظام الإجازات السنوية (ANNUAL LEAVE SYSTEM)
+        ==================================================================== -->
+        <section id="tab-section-leaves" class="portal-tab-section hidden space-y-6">
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+                <div class="frosted-card rounded-3xl p-6 border-teal-200/80">
+                    <span class="text-xs font-bold text-ghazara-teal">الرصيد السنوي المستحق</span>
+                    <p id="leave-kpi-entitled" class="font-display text-3xl font-extrabold text-ghazara-purpleDark mt-2">30</p>
+                    <span class="text-[11px] text-slate-500">يوماً في السنة للموظفين والمدراء</span>
+                </div>
+                <div class="frosted-card rounded-3xl p-6 border-emerald-200/80">
+                    <span class="text-xs font-bold text-emerald-700">الأيام المعتمدة والمستنفدة</span>
+                    <p id="leave-kpi-used" class="font-display text-3xl font-extrabold text-emerald-600 mt-2">0</p>
+                    <span class="text-[11px] text-slate-500">بناءً على الطلبات المعتمدة</span>
+                </div>
+                <div class="frosted-card rounded-3xl p-6 border-purple-200/80">
+                    <span class="text-xs font-bold text-ghazara-purple">الرصيد المتبقي المتاح</span>
+                    <p id="leave-kpi-remaining" class="font-display text-3xl font-extrabold text-ghazara-purple mt-2">30</p>
+                    <span class="text-[11px] text-slate-500">يوماً قابلاً للطلب</span>
+                </div>
+                <div class="frosted-card rounded-3xl p-6 border-orange-200/80">
+                    <span class="text-xs font-bold text-ghazara-orange">طلبات بانتظار الاعتماد</span>
+                    <p id="leave-kpi-pending" class="font-display text-3xl font-extrabold text-ghazara-orange mt-2">0</p>
+                    <span class="text-[11px] text-slate-500">قيد مراجعة الموارد البشرية والإدارة</span>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+                <div class="lg:col-span-5 frosted-card rounded-[28px] p-6 sm:p-8 border-teal-200/80 space-y-5">
+                    <div class="space-y-1">
+                        <span class="inline-block px-3 py-1 rounded-full bg-ghazara-tealSoft text-ghazara-teal text-xs font-bold">
+                            متاح لجميع المسميات الوظيفية العشرة
+                        </span>
+                        <h3 class="text-xl font-bold text-ghazara-purpleDark">
+                            تقديم طلب إجازة سنوية
+                        </h3>
+                        <p class="text-xs text-slate-600">
+                            يُحفظ الطلب مباشرة في ورقة <strong>(طلبات_الاجازات)</strong> ويُرفع لمدير الموارد البشرية والمدير التنفيذي.
+                        </p>
+                    </div>
+
+                    <form id="annual-leave-form" onsubmit="handleSubmitLeave(event)" class="space-y-4 text-sm">
+                        <div id="leave-applicant-selector-wrap" class="hidden">
+                            <label class="block font-bold text-ghazara-purpleDark mb-1.5">مقدم الطلب (الموظف / المدير) *</label>
+                            <select id="leaveApplicantSelect" onchange="handleApplicantSelectionChange()" class="w-full rounded-xl border border-purple-200 bg-white px-3.5 py-2.5 outline-none focus:border-ghazara-purple"></select>
+                        </div>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                            <div>
+                                <label class="block text-xs font-bold text-slate-600 mb-1">اسم الموظف / المدير</label>
+                                <input type="text" id="leaveEmpName" readonly class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-ghazara-purpleDark font-semibold">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-slate-600 mb-1">المسمى الوظيفي والقسم</label>
+                                <input type="text" id="leaveEmpRoleDept" readonly class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-slate-600">
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="block font-bold text-ghazara-purpleDark mb-1.5">نوع الإجازة السنوية *</label>
+                            <select id="leaveType" required class="w-full rounded-xl border border-purple-200 bg-white px-3.5 py-2.5 outline-none focus:border-ghazara-purple">
+                                <option value="إجازة سنوية اعتيادية">إجازة سنوية اعتيادية</option>
+                                <option value="إجازة سنوية مجزأة">إجازة سنوية مجزأة</option>
+                                <option value="إجازة سنوية طارئة (من الرصيد السنوي)">إجازة سنوية طارئة (من الرصيد السنوي)</option>
+                                <option value="إجازة خاصة للمدراء والتنفيذيين">إجازة خاصة للمدراء والتنفيذيين</option>
+                            </select>
+                        </div>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                            <div>
+                                <label class="block font-bold text-ghazara-purpleDark mb-1.5">تاريخ بداية الإجازة *</label>
+                                <input type="date" id="leaveStartDate" required onchange="calculateLeaveDays()" class="w-full rounded-xl border border-purple-200 bg-white px-3.5 py-2.5 outline-none focus:border-ghazara-purple">
+                            </div>
+                            <div>
+                                <label class="block font-bold text-ghazara-purpleDark mb-1.5">تاريخ نهاية الإجازة *</label>
+                                <input type="date" id="leaveEndDate" required onchange="calculateLeaveDays()" class="w-full rounded-xl border border-purple-200 bg-white px-3.5 py-2.5 outline-none focus:border-ghazara-purple">
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                            <div>
+                                <label class="block font-bold text-ghazara-purpleDark mb-1.5">عدد أيام الإجازة *</label>
+                                <input type="number" id="leaveDaysCount" required min="1" max="60" value="1" class="w-full rounded-xl border border-purple-200 bg-white px-3.5 py-2.5 font-display font-bold text-ghazara-purple outline-none focus:border-ghazara-purple">
+                            </div>
+                            <div>
+                                <label class="block font-bold text-ghazara-purpleDark mb-1.5">الموظف البديل أثناء الإجازة</label>
+                                <input type="text" id="leaveSubstitute" placeholder="اسم الزميل المكلف بالمهام" class="w-full rounded-xl border border-purple-200 bg-white px-3.5 py-2.5 outline-none focus:border-ghazara-purple">
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="block font-bold text-ghazara-purpleDark mb-1.5">سبب الإجازة / ملاحظات تسليم الأعمال *</label>
+                            <textarea id="leaveReason" rows="3" required placeholder="اذكر سبب الإجازة السنوية وترتيبات تسليم المهام الجارية..." class="w-full rounded-xl border border-purple-200 bg-white px-3.5 py-2.5 outline-none focus:border-ghazara-purple"></textarea>
+                        </div>
+
+                        <button type="submit" id="leave-submit-btn" class="w-full btn-teal-gradient font-bold py-3.5 rounded-full flex items-center justify-center gap-2">
+                            <span id="leave-submit-spinner" class="spinner hidden"></span>
+                            <span id="leave-submit-text">إرسال طلب الإجازة السنوية</span>
+                        </button>
+                    </form>
+                </div>
+
+                <div class="lg:col-span-7 frosted-card rounded-[28px] p-6 sm:p-8 border-purple-200/80 space-y-5">
+                    <div class="flex flex-wrap items-center justify-between gap-3">
+                        <div>
+                            <span class="text-xs font-bold text-ghazara-purple">سجل الإجازات السنوية</span>
+                            <h3 class="text-xl font-bold text-ghazara-purpleDark">طلبات الإجازة السنوية وحالة الاعتماد</h3>
+                            <p id="leave-approval-hint" class="text-xs text-slate-500"></p>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <select id="leaveFilterStatus" onchange="renderLeavesTable()" class="text-xs font-bold rounded-full border border-purple-200 bg-white px-3.5 py-2 outline-none">
+                                <option value="ALL">جميع الحالات</option>
+                                <option value="بانتظار الاعتماد">بانتظار الاعتماد</option>
+                                <option value="معتمد">معتمد</option>
+                                <option value="مرفوض">مرفوض</option>
+                            </select>
+                            <button onclick="exportLeavesToCSV()" class="text-xs font-bold text-ghazara-purple bg-ghazara-purpleSoft px-3.5 py-2 rounded-full">
+                                تصدير CSV
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-right border-collapse text-sm">
+                            <thead>
+                                <tr class="border-b border-purple-100 text-xs font-bold text-ghazara-purple bg-ghazara-purpleSoft/50">
+                                    <th class="p-3 rounded-tr-2xl">رقم الطلب</th>
+                                    <th class="p-3">الموظف / المدير</th>
+                                    <th class="p-3">نوع الإجازة والفترة</th>
+                                    <th class="p-3">الأيام</th>
+                                    <th class="p-3">البديل والسبب</th>
+                                    <th class="p-3">الحالة</th>
+                                    <th class="p-3 rounded-tl-2xl">إجراء الاعتماد</th>
+                                </tr>
+                            </thead>
+                            <tbody id="leaves-table-body" class="divide-y divide-purple-100/60 text-slate-700"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ===================================================================
+             3. منظومة المبيعات وتطوير الأعمال (SALES CRM: مدير المبيعات + موظف مبيعات)
+        ==================================================================== -->
+        <section id="tab-section-sales" class="portal-tab-section hidden space-y-6">
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+                
+                <!-- نموذج إضافة عميل / فرصة بيعية يدوياً -->
+                <div class="lg:col-span-4 frosted-card rounded-[28px] p-6 sm:p-7 border-orange-200/80 space-y-4">
+                    <div>
+                        <span class="text-xs font-bold text-ghazara-orange">إدخال مباشر للمبيعات</span>
+                        <h3 class="text-lg font-bold text-ghazara-purpleDark">+ تسجيل عميل / فرصة بيعية جديدة</h3>
+                        <p class="text-xs text-slate-500">بالإضافة للطلبات القادمة من الموقع، يمكنك تسجيل أي عميل مباشر هنا.</p>
+                    </div>
+                    <form id="manual-lead-form" onsubmit="handleManualLeadSubmit(event)" class="space-y-3.5 text-xs sm:text-sm">
+                        <div>
+                            <label class="block font-bold mb-1">اسم العميل / المسؤول *</label>
+                            <input type="text" id="mLeadName" required placeholder="الاسم الكامل" class="w-full rounded-xl border border-purple-200 px-3 py-2 outline-none focus:border-ghazara-purple">
+                        </div>
+                        <div>
+                            <label class="block font-bold mb-1">اسم المنشأة / الشركة *</label>
+                            <input type="text" id="mLeadOrg" required placeholder="اسم النشاط التجاري" class="w-full rounded-xl border border-purple-200 px-3 py-2 outline-none focus:border-ghazara-purple">
+                        </div>
+                        <div class="grid grid-cols-2 gap-2.5">
+                            <div>
+                                <label class="block font-bold mb-1">رقم الهاتف *</label>
+                                <input type="tel" id="mLeadPhone" required dir="ltr" placeholder="783..." class="w-full rounded-xl border border-purple-200 px-3 py-2 text-right">
+                            </div>
+                            <div>
+                                <label class="block font-bold mb-1">القطاع</label>
+                                <input type="text" id="mLeadSector" placeholder="تجاري، خدمي..." class="w-full rounded-xl border border-purple-200 px-3 py-2">
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block font-bold mb-1">الخدمة أو الاحتياج المطلوب *</label>
+                            <textarea id="mLeadNeed" rows="2" required placeholder="تفاصيل الخدمة المطلوبة..." class="w-full rounded-xl border border-purple-200 px-3 py-2"></textarea>
+                        </div>
+                        <div>
+                            <label class="block font-bold mb-1">إسناد المتابعة إلى (موظف المبيعات)</label>
+                            <select id="mLeadAssignee" class="w-full rounded-xl border border-purple-200 bg-white px-3 py-2"></select>
+                        </div>
+                        <button type="submit" class="w-full btn-orange-gradient font-bold py-3 rounded-full text-xs sm:text-sm">
+                            حفظ الفرصة البيعية في سجل CRM
+                        </button>
+                    </form>
+                </div>
+
+                <!-- جدول إدارة الفرص البيعية وإسناد المندوبين -->
+                <div class="lg:col-span-8 frosted-card rounded-[28px] p-6 sm:p-8 border-purple-200/80 space-y-5">
+                    <div class="flex flex-wrap items-center justify-between gap-4">
+                        <div>
+                            <span class="text-xs font-bold text-ghazara-orange">نظام إدارة علاقات العملاء (CRM)</span>
+                            <h2 class="text-xl font-bold text-ghazara-purpleDark">سجل طلبات العملاء وتوزيع الفرص البيعية</h2>
+                            <p id="sales-role-note" class="text-xs text-slate-500"></p>
+                        </div>
+                        <div class="flex flex-wrap items-center gap-2">
+                            <select id="salesFilterAssignee" onchange="loadLeadsTable()" class="text-xs font-bold rounded-full border border-purple-200 bg-white px-3.5 py-2">
+                                <option value="ALL">جميع المندوبين</option>
+                                <option value="MINE">العملاء المسندون لي فقط</option>
+                            </select>
+                            <button onclick="syncDataFromGoogleSheets()" class="text-xs font-bold text-ghazara-teal bg-ghazara-tealSoft px-4 py-2 rounded-full border border-teal-200 hover:bg-teal-100">
+                                تحديث ↻
+                            </button>
+                            <button onclick="exportLeadsToCSV()" class="text-xs font-bold text-ghazara-purple bg-ghazara-purpleSoft px-4 py-2 rounded-full">
+                                تصدير CSV
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-right border-collapse text-xs sm:text-sm">
+                            <thead>
+                                <tr class="border-b border-purple-100 text-xs font-bold text-ghazara-purple bg-ghazara-purpleSoft/50">
+                                    <th class="p-3 rounded-tr-2xl">رقم المرجع</th>
+                                    <th class="p-3">العميل / المنشأة</th>
+                                    <th class="p-3">التواصل</th>
+                                    <th class="p-3">الاحتياج المطلوب</th>
+                                    <th class="p-3">موظف المبيعات المسؤول</th>
+                                    <th class="p-3">الحالة</th>
+                                    <th class="p-3 rounded-tl-2xl">إجراء</th>
+                                </tr>
+                            </thead>
+                            <tbody id="leads-table-body" class="divide-y divide-purple-100/60 text-slate-700"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- ===================================================================
+             4-A. منظومة التسويق الميداني (FIELD MARKETING: موظف تسويق ميداني + مدير التسويق)
+        ==================================================================== -->
+        <section id="tab-section-field_marketing" class="portal-tab-section hidden space-y-6">
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+                <div class="lg:col-span-4 frosted-card rounded-[28px] p-6 sm:p-7 border-indigo-200/80 space-y-4">
+                    <div>
+                        <span class="text-xs font-bold text-indigo-600">وحدة النزول الميداني — حضرموت / سيئون</span>
+                        <h3 class="text-lg font-bold text-ghazara-purpleDark">+ تسجيل زيارة تسويق ميداني</h3>
+                        <p class="text-xs text-slate-500">توثيق الزيارات الميدانية للمنشآت وتحويل المهتمين مباشرة إلى قسم المبيعات.</p>
+                    </div>
+                    <form id="field-visit-form" onsubmit="handleAddFieldVisit(event)" class="space-y-3.5 text-xs sm:text-sm">
+                        <div>
+                            <label class="block font-bold mb-1">اسم المنشأة / المحل التجاري *</label>
+                            <input type="text" id="fvBusinessName" required placeholder="مثال: مؤسسة..." class="w-full rounded-xl border border-purple-200 px-3 py-2">
+                        </div>
+                        <div class="grid grid-cols-2 gap-2.5">
+                            <div>
+                                <label class="block font-bold mb-1">الشخص المسؤول *</label>
+                                <input type="text" id="fvContactPerson" required placeholder="اسم الشخص" class="w-full rounded-xl border border-purple-200 px-3 py-2">
+                            </div>
+                            <div>
+                                <label class="block font-bold mb-1">رقم الهاتف *</label>
+                                <input type="tel" id="fvPhone" required dir="ltr" placeholder="7..." class="w-full rounded-xl border border-purple-200 px-3 py-2 text-right">
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block font-bold mb-1">الموقع / الحي / الشارع *</label>
+                            <input type="text" id="fvLocation" required placeholder="مثال: سيئون - شارع الجزائر" class="w-full rounded-xl border border-purple-200 px-3 py-2">
+                        </div>
+                        <div>
+                            <label class="block font-bold mb-1">الخدمة المقترحة وملاحظات الزيارة *</label>
+                            <textarea id="fvNotes" rows="2" required placeholder="ما الذي تحتاجه المنشأة؟" class="w-full rounded-xl border border-purple-200 px-3 py-2"></textarea>
+                        </div>
+                        <div>
+                            <label class="block font-bold mb-1">نتيجة الزيارة الميدانية</label>
+                            <select id="fvOutcome" class="w-full rounded-xl border border-purple-200 bg-white px-3 py-2 font-bold">
+                                <option value="مهتم - يحول للمبيعات">مهتم — جاهز للتحويل لقسم المبيعات</option>
+                                <option value="يحتاج زيارة متابعة">يحتاج زيارة متابعة لاحقة</option>
+                                <option value="تم تسليم بروفايل تعريفي">تم تسليم بروفايل تعريفي فقط</option>
+                            </select>
+                        </div>
+                        <button type="submit" class="w-full btn-purple-gradient font-bold py-3 rounded-full">
+                            حفظ الزيارة الميدانية
+                        </button>
+                    </form>
+                </div>
+
+                <div class="lg:col-span-8 frosted-card rounded-[28px] p-6 sm:p-8 border-purple-200/80 space-y-4">
+                    <div class="flex flex-wrap items-center justify-between gap-3">
+                        <div>
+                            <span class="text-xs font-bold text-indigo-600">سجل التسويق الميداني</span>
+                            <h3 class="text-xl font-bold text-ghazara-purpleDark">الزيارات الميدانية الموثقة وتحويلها للمبيعات</h3>
+                        </div>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-right border-collapse text-xs sm:text-sm">
+                            <thead>
+                                <tr class="border-b border-purple-100 text-xs font-bold text-ghazara-purple bg-ghazara-purpleSoft/50">
+                                    <th class="p-3 rounded-tr-2xl">رقم الزيارة</th>
+                                    <th class="p-3">المنشأة والموقع</th>
+                                    <th class="p-3">المسؤول والهاتف</th>
+                                    <th class="p-3">المسوق الميداني</th>
+                                    <th class="p-3">الاحتياج والنتيجة</th>
+                                    <th class="p-3 rounded-tl-2xl">تحويل للمبيعات</th>
+                                </tr>
+                            </thead>
+                            <tbody id="field-visits-tbody" class="divide-y divide-purple-100/60 text-slate-700"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ===================================================================
+             4-B. منظومة التسويق الرقمي والحملات (MARKETING: مدير التسويق + موظف تسويق)
+        ==================================================================== -->
+        <section id="tab-section-marketing" class="portal-tab-section hidden space-y-6">
+            <div class="frosted-card rounded-[28px] p-6 sm:p-8 border-purple-200/80 space-y-6">
+                <div class="flex flex-wrap items-center justify-between gap-4">
+                    <div>
+                        <span class="text-xs font-bold text-ghazara-purple">قسم التسويق الرقمي والاستراتيجيات</span>
+                        <h2 class="text-xl font-bold text-ghazara-purpleDark">نواة إدارة الحملات التسويقية وخطط المحتوى</h2>
+                        <p class="text-xs text-slate-500">تأسيس خطط الحملات التسويقية وربطها بمهام التصميم والمونتاج ولوحة المهام.</p>
+                    </div>
+                    <a href="tasks.html" class="btn-purple-gradient text-xs sm:text-sm font-bold px-5 py-2.5 rounded-full">
+                        فتح لوحة مهام التسويق الكاملة ⟵
+                    </a>
+                </div>
+
+                <form onsubmit="handleAddCampaign(event)" class="grid grid-cols-1 sm:grid-cols-12 gap-3 bg-purple-50/50 p-4 rounded-2xl border border-purple-100 text-xs sm:text-sm">
+                    <input type="text" id="campTitle" required placeholder="اسم الحملة التسويقية أو الخطة *" class="sm:col-span-4 rounded-xl border border-purple-200 bg-white px-3 py-2">
+                    <input type="text" id="campClient" required placeholder="العميل / المشروع *" class="sm:col-span-3 rounded-xl border border-purple-200 bg-white px-3 py-2">
+                    <select id="campChannel" class="sm:col-span-3 rounded-xl border border-purple-200 bg-white px-3 py-2">
+                        <option value="منصات التواصل الاجتماعي">منصات التواصل الاجتماعي</option>
+                        <option value="حملة إعلانات ممولة">حملة إعلانات ممولة</option>
+                        <option value="إطلاق هوية / منتج">إطلاق هوية / منتج</option>
+                    </select>
+                    <button type="submit" class="sm:col-span-2 btn-purple-gradient font-bold py-2 rounded-xl">+ إضافة حملة</button>
+                </form>
+
+                <div id="campaigns-list-box" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+            </div>
+        </section>
+
+        <!-- ===================================================================
+             4-C. استوديو التصميم الجرافيكي (DESIGN STUDIO: مصمم)
+        ==================================================================== -->
+        <section id="tab-section-design" class="portal-tab-section hidden space-y-6">
+            <div class="frosted-card rounded-[28px] p-6 sm:p-8 border-pink-200/80 space-y-6">
+                <div class="flex flex-wrap items-center justify-between gap-4">
+                    <div>
+                        <span class="text-xs font-bold text-pink-600">استوديو التصميم الجرافيكي والهوية البصرية</span>
+                        <h2 class="text-xl font-bold text-ghazara-purpleDark">طلبات التصميم الجرافيكي والهويات البصرية</h2>
+                        <p class="text-xs text-slate-500">مساحة عمل المصمم لاستلام طلبات التصميم ورفع روابط المخرجات النهائية.</p>
+                    </div>
+                    <a href="tasks.html" class="btn-purple-gradient text-xs font-bold px-5 py-2.5 rounded-full">لوحة المهام المشتركة ⟵</a>
+                </div>
+
+                <form onsubmit="handleAddCreativeJob(event, 'تصميم')" class="grid grid-cols-1 sm:grid-cols-12 gap-3 bg-pink-50/40 p-4 rounded-2xl border border-pink-100 text-xs sm:text-sm">
+                    <input type="text" id="designTitle" required placeholder="عنوان طلب التصميم (مثال: تصميم هوية / بوستات) *" class="sm:col-span-4 rounded-xl border border-purple-200 bg-white px-3 py-2">
+                    <input type="text" id="designClient" required placeholder="العميل / الحملة *" class="sm:col-span-3 rounded-xl border border-purple-200 bg-white px-3 py-2">
+                    <input type="url" id="designLink" dir="ltr" placeholder="رابط ملف التصميم (Drive / Canva)" class="sm:col-span-3 rounded-xl border border-purple-200 bg-white px-3 py-2 text-right">
+                    <button type="submit" class="sm:col-span-2 btn-orange-gradient font-bold py-2 rounded-xl">+ تسجيل تصميم</button>
+                </form>
+
+                <div id="design-jobs-list" class="space-y-3"></div>
+            </div>
+        </section>
+
+        <!-- ===================================================================
+             4-D. وحدة المونتاج والإنتاج المرئي (VIDEO MONTAGE: موظف مونتاج)
+        ==================================================================== -->
+        <section id="tab-section-montage" class="portal-tab-section hidden space-y-6">
+            <div class="frosted-card rounded-[28px] p-6 sm:p-8 border-violet-200/80 space-y-6">
+                <div class="flex flex-wrap items-center justify-between gap-4">
+                    <div>
+                        <span class="text-xs font-bold text-violet-600">وحدة المونتاج والإنتاج المرئي (Video Editing & Motion)</span>
+                        <h2 class="text-xl font-bold text-ghazara-purpleDark">مشاريع مونتاج الفيديو، الريلز، والموشن جرافيك</h2>
+                        <p class="text-xs text-slate-500">مساحة عمل موظف المونتاج لمتابعة إنتاج الفيديوهات ورفع نسخ المعاينة للاعتماد.</p>
+                    </div>
+                    <a href="tasks.html" class="btn-purple-gradient text-xs font-bold px-5 py-2.5 rounded-full">لوحة المهام المشتركة ⟵</a>
+                </div>
+
+                <form onsubmit="handleAddCreativeJob(event, 'مونتاج')" class="grid grid-cols-1 sm:grid-cols-12 gap-3 bg-violet-50/40 p-4 rounded-2xl border border-violet-100 text-xs sm:text-sm">
+                    <input type="text" id="montageTitle" required placeholder="عنوان الفيديو / الريلز / الموشن *" class="sm:col-span-4 rounded-xl border border-purple-200 bg-white px-3 py-2">
+                    <input type="text" id="montageClient" required placeholder="العميل / المشروع *" class="sm:col-span-3 rounded-xl border border-purple-200 bg-white px-3 py-2">
+                    <input type="url" id="montageLink" dir="ltr" placeholder="رابط معاينة الفيديو (Drive / Frame)" class="sm:col-span-3 rounded-xl border border-purple-200 bg-white px-3 py-2 text-right">
+                    <button type="submit" class="sm:col-span-2 btn-purple-gradient font-bold py-2 rounded-xl">+ تسجيل فيديو</button>
+                </form>
+
+                <div id="montage-jobs-list" class="space-y-3"></div>
+            </div>
+        </section>
+
+        <!-- ===================================================================
+             1-B. الإدارة المالية والحسابات (FINANCE & ACCOUNTING: محاسب)
+        ==================================================================== -->
+        <section id="tab-section-finance" class="portal-tab-section hidden space-y-6">
+            <div class="frosted-card rounded-[28px] p-6 sm:p-8 border-emerald-200/80 space-y-6">
+                <div class="flex flex-wrap items-center justify-between gap-4">
+                    <div>
+                        <span class="text-xs font-bold text-emerald-600">الإدارة المالية والحسابات</span>
+                        <h2 class="text-xl font-bold text-ghazara-purpleDark">سجل الفواتير، تحصيلات عقود المبيعات، والمصروفات التشغيلية</h2>
+                    </div>
+                </div>
+
+                <form onsubmit="handleAddFinanceRecord(event)" class="grid grid-cols-1 sm:grid-cols-12 gap-3 bg-emerald-50/40 p-4 rounded-2xl border border-emerald-100 text-xs sm:text-sm">
+                    <select id="finType" class="sm:col-span-2 rounded-xl border border-emerald-200 bg-white px-3 py-2 font-bold">
+                        <option value="سند قبض / تحصيل">سند قبض / تحصيل</option>
+                        <option value="فاتورة مبيعات">فاتورة مبيعات</option>
+                        <option value="مصروف تشغيلي">مصروف تشغيلي</option>
+                    </select>
+                    <input type="text" id="finParty" required placeholder="العميل أو جهة الصرف *" class="sm:col-span-3 rounded-xl border border-emerald-200 bg-white px-3 py-2">
+                    <input type="number" id="finAmount" required min="1" placeholder="المبلغ *" class="sm:col-span-2 rounded-xl border border-emerald-200 bg-white px-3 py-2 font-display font-bold">
+                    <input type="text" id="finDesc" required placeholder="البيان / رقم العقد *" class="sm:col-span-3 rounded-xl border border-emerald-200 bg-white px-3 py-2">
+                    <button type="submit" class="sm:col-span-2 btn-teal-gradient font-bold py-2 rounded-xl">+ قيد مالي</button>
+                </form>
+
+                <div class="overflow-x-auto">
+                    <table class="w-full text-right border-collapse text-xs sm:text-sm">
+                        <thead>
+                            <tr class="border-b border-purple-100 text-xs font-bold text-emerald-800 bg-emerald-50/60">
+                                <th class="p-3 rounded-tr-2xl">رقم القيد</th>
+                                <th class="p-3">التاريخ</th>
+                                <th class="p-3">نوع العملية</th>
+                                <th class="p-3">الطرف المرتبط</th>
+                                <th class="p-3">البيان</th>
+                                <th class="p-3">المبلغ</th>
+                                <th class="p-3 rounded-tl-2xl">بواسطة</th>
+                            </tr>
+                        </thead>
+                        <tbody id="finance-tbody" class="divide-y divide-purple-100/60 text-slate-700"></tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Modal for Approving / Rejecting Annual Leave with Notes -->
+    <div id="leave-decision-modal" class="fixed inset-0 z-50 hidden bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="frosted-card bg-white rounded-3xl max-w-md w-full p-6 sm:p-8 space-y-5 border border-purple-200 shadow-2xl">
+            <div class="flex items-center justify-between">
+                <h3 class="text-lg font-bold text-ghazara-purpleDark" id="leave-modal-title">اعتماد / رفض طلب الإجازة</h3>
+                <button onclick="closeLeaveDecisionModal()" class="text-slate-400 hover:text-slate-600 text-xl font-bold">✕</button>
+            </div>
+            <div class="space-y-3 text-sm">
+                <p id="leave-modal-summary" class="text-slate-600 bg-purple-50/60 p-3.5 rounded-2xl border border-purple-100"></p>
+                <div>
+                    <label class="block font-bold text-ghazara-purpleDark mb-1.5">القرار الإداري *</label>
+                    <select id="leaveDecisionStatus" class="w-full rounded-xl border border-purple-200 px-3.5 py-2.5 font-bold">
+                        <option value="معتمد">معتمد (مقبول)</option>
+                        <option value="مرفوض">مرفوض</option>
+                        <option value="بانتظار الاعتماد">بانتظار استكمال بيانات</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block font-bold text-ghazara-purpleDark mb-1.5">ملاحظات الموارد البشرية / الإدارة التنفيذية</label>
+                    <textarea id="leaveDecisionNotes" rows="3" placeholder="أضف أي توجيهات أو سبب القرار..." class="w-full rounded-xl border border-purple-200 px-3.5 py-2.5"></textarea>
+                </div>
+            </div>
+            <div class="flex items-center justify-end gap-3 pt-2">
+                <button type="button" onclick="closeLeaveDecisionModal()" class="px-5 py-2.5 rounded-full text-xs font-bold text-slate-600 bg-slate-100 hover:bg-slate-200">إلغاء</button>
+                <button type="button" onclick="confirmLeaveDecision()" id="leave-decision-save-btn" class="btn-purple-gradient px-6 py-2.5 rounded-full text-xs font-bold">حفظ القرار في قاعدة البيانات</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="../assets/js/app.js"></script>
+    <script>
+        const TAB_LABELS = {
+            executive: '🏛️ الإدارة العامة والتنفيذية',
+            hr: '👥 الموارد البشرية (HR)',
+            leaves: '🌴 الإجازات السنوية',
+            sales: '💼 المبيعات (CRM)',
+            marketing: '📢 التسويق الرقمي',
+            field_marketing: '📍 التسويق الميداني',
+            design: '🎨 استوديو التصميم',
+            montage: '🎬 وحدة المونتاج',
+            finance: '💳 المالية والحسابات'
+        };
+
+        let currentSessionUser = null;
+        let selectedLeaveRequestForDecision = null;
+
+        function showPortalToast(msg, type = 'success') {
+            const toast = document.getElementById('portal-toast');
+            toast.className = 'fixed bottom-5 left-5 z-50 max-w-md rounded-2xl p-4 shadow-xl border text-sm font-bold transition-all ' +
+                (type === 'error' ? 'bg-red-50 text-red-700 border-red-200' : 'bg-emerald-50 text-emerald-800 border-emerald-200');
+            toast.textContent = msg;
+            toast.classList.remove('hidden');
+            setTimeout(() => toast.classList.add('hidden'), 4500);
+        }
+
+        function initPortalByRole() {
+            const rawSession = localStorage.getItem(GHAZARA_CONFIG.STORAGE_KEY_SESSION);
+            if (!rawSession) {
+                window.location.href = 'login.html';
+                return;
+            }
+
+            currentSessionUser = JSON.parse(rawSession);
+            const roleName = currentSessionUser.jobRole || 'موظف مبيعات';
+            const roleConfig = GHAZARA_ROLES_PERMISSIONS[roleName] || GHAZARA_ROLES_PERMISSIONS['موظف مبيعات'];
+
+            if (!roleConfig.allowedTabs.includes('leaves')) {
+                roleConfig.allowedTabs.push('leaves');
+            }
+
+            document.getElementById('user-emp-name').textContent = currentSessionUser.empName;
+            const badge = document.getElementById('user-role-badge');
+            badge.textContent = roleName;
+            badge.className = `text-[11px] font-bold px-2.5 py-0.5 rounded-full ${roleConfig.badgeColor}`;
+            document.getElementById('user-email-display').textContent = currentSessionUser.email || currentSessionUser.username;
+
+            document.getElementById('header-role-title').textContent = roleConfig.title;
+            document.getElementById('header-dept-subtitle').textContent = `القسم: ${currentSessionUser.department || 'غزارة'}`;
+            document.getElementById('banner-welcome-heading').textContent = `أهلاً بك، ${currentSessionUser.empName} (${roleName})`;
+            document.getElementById('banner-role-desc').textContent = roleConfig.description;
+
+            const tabsContainer = document.getElementById('role-tabs-container');
+            tabsContainer.innerHTML = roleConfig.allowedTabs.map(tabKey => `
+                <button onclick="switchRoleTab('${tabKey}')" id="role-tab-btn-${tabKey}" class="px-4 py-2.5 rounded-full text-xs sm:text-sm font-bold transition-all">
+                    ${TAB_LABELS[tabKey] || tabKey}
+                </button>
+            `).join('');
+
+            populateSalesAssigneesDropdown();
+            setupLeaveFormForUser();
+            switchRoleTab(roleConfig.defaultTab);
+        }
+
+        function switchRoleTab(tabKey) {
+            document.querySelectorAll('.portal-tab-section').forEach(sec => sec.classList.add('hidden'));
+            const targetSec = document.getElementById('tab-section-' + tabKey);
+            if (targetSec) targetSec.classList.remove('hidden');
+
+            const roleName = currentSessionUser?.jobRole || 'موظف مبيعات';
+            const roleConfig = GHAZARA_ROLES_PERMISSIONS[roleName] || GHAZARA_ROLES_PERMISSIONS['موظف مبيعات'];
+
+            roleConfig.allowedTabs.forEach(k => {
+                const btn = document.getElementById('role-tab-btn-' + k);
+                if (btn) {
+                    btn.className = (k === tabKey)
+                        ? 'btn-purple-gradient px-4 py-2.5 rounded-full text-xs sm:text-sm font-bold'
+                        : 'frosted-card px-4 py-2.5 rounded-full text-xs sm:text-sm font-bold text-slate-700 hover:text-ghazara-purple';
+                }
+            });
+        }
+
+        function logoutPortal() {
+            localStorage.removeItem(GHAZARA_CONFIG.STORAGE_KEY_SESSION);
+            window.location.href = 'login.html';
+        }
+
+        function getStaffList() {
+            let staff = JSON.parse(localStorage.getItem(GHAZARA_CONFIG.STORAGE_KEY_HR) || 'null');
+            const requiredRoles = Object.keys(GHAZARA_ROLES_PERMISSIONS);
+            const hasOutdated = Array.isArray(staff) && staff.some(s => !requiredRoles.includes(s.role));
+
+            if (!staff || !Array.isArray(staff) || staff.length === 0 || hasOutdated) {
+                staff = getLocalUsersSheet().map((u, idx) => ({
+                    id: 'EMP-' + (101 + idx),
+                    name: u.empName,
+                    username: u.username,
+                    role: u.jobRole,
+                    dept: u.department,
+                    phone: '+967 783 334 00' + idx,
+                    annualBalance: 30,
+                    status: 'على رأس العمل'
+                }));
+                localStorage.setItem(GHAZARA_CONFIG.STORAGE_KEY_HR, JSON.stringify(staff));
+            }
+            return staff;
+        }
+
+        function populateSalesAssigneesDropdown() {
+            const sel = document.getElementById('mLeadAssignee');
+            if (!sel) return;
+            const staff = getStaffList().filter(s => s.role === 'موظف مبيعات' || s.role === 'مدير المبيعات');
+            sel.innerHTML = `<option value="غير معين">-- غير معين --</option>` +
+                staff.map(s => `<option value="${s.name}" ${s.name === currentSessionUser?.empName ? 'selected' : ''}>${s.name} (${s.role})</option>`).join('');
+        }
+
+        // ==================== SALES CRM LOGIC ====================
+        async function handleManualLeadSubmit(e) {
+            e.preventDefault();
+            const leadData = {
+                action: 'addLead',
+                leadId: 'GHZ-' + Date.now().toString().slice(-6),
+                timestamp: new Date().toLocaleString('ar-YE'),
+                fullName: document.getElementById('mLeadName').value.trim(),
+                organization: document.getElementById('mLeadOrg').value.trim(),
+                phone: document.getElementById('mLeadPhone').value.trim(),
+                email: '',
+                sector: document.getElementById('mLeadSector').value.trim() || 'عام',
+                supportArea: document.getElementById('mLeadNeed').value.trim(),
+                goalToAchieve: 'إدخال مباشر عبر بوابة المبيعات',
+                startTime: 'فوري',
+                status: 'جديد',
+                assignedTo: document.getElementById('mLeadAssignee').value || currentSessionUser?.empName || 'غير معين',
+                source: 'بوابة الموظفين'
+            };
+
+            const leads = JSON.parse(localStorage.getItem(GHAZARA_CONFIG.STORAGE_KEY_LEADS) || '[]');
+            leads.unshift(leadData);
+            localStorage.setItem(GHAZARA_CONFIG.STORAGE_KEY_LEADS, JSON.stringify(leads));
+            document.getElementById('manual-lead-form').reset();
+            loadLeadsTable();
+            await callGoogleScriptAPI(leadData);
+            showPortalToast(`تم تسجيل الفرصة البيعية (${leadData.leadId}) بنجاح.`);
+        }
+
+        function loadLeadsTable() {
+            const leads = JSON.parse(localStorage.getItem(GHAZARA_CONFIG.STORAGE_KEY_LEADS) || '[]');
+            const tbody = document.getElementById('leads-table-body');
+            const execLeads = document.getElementById('exec-kpi-leads');
+            if (execLeads) execLeads.textContent = leads.length;
+
+            const filterMode = document.getElementById('salesFilterAssignee')?.value || 'ALL';
+            const roleName = currentSessionUser?.jobRole || '';
+            const canAssign = GHAZARA_ROLES_PERMISSIONS[roleName]?.canAssignSalesLeads;
+            const salesStaff = getStaffList().filter(s => s.role === 'موظف مبيعات' || s.role === 'مدير المبيعات');
+
+            const noteEl = document.getElementById('sales-role-note');
+            if (noteEl) {
+                noteEl.textContent = canAssign
+                    ? 'بصفتك مديراً، يمكنك تعيين وتوزيع الفرص البيعية على موظفي المبيعات مباشرة.'
+                    : 'يمكنك متابعة العملاء المسندين إليك وتحديث حالات التواصل وعروض الأسعار.';
+            }
+
+            if (!tbody) return;
+            let visibleLeads = leads;
+            if (filterMode === 'MINE') {
+                visibleLeads = leads.filter(l => l.assignedTo === currentSessionUser?.empName);
+            }
+
+            if (visibleLeads.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="7" class="p-8 text-center text-slate-400">لا توجد فرص بيعية مطابقة حالياً في سجل المبيعات.</td></tr>`;
+                return;
+            }
+
+            tbody.innerHTML = visibleLeads.map((lead) => {
+                const realIdx = leads.findIndex(x => x.leadId === lead.leadId);
+                return `
+                <tr class="hover:bg-purple-50/40 transition-colors">
+                    <td class="p-3 font-display font-bold text-xs text-ghazara-purple">
+                        <div>${lead.leadId}</div>
+                        <div class="text-[10px] text-slate-400">${lead.timestamp || ''}</div>
+                    </td>
+                    <td class="p-3">
+                        <div class="font-bold text-ghazara-purpleDark">${lead.fullName}</div>
+                        <div class="text-xs text-slate-500">${lead.organization || ''} (${lead.sector || 'عام'})</div>
+                    </td>
+                    <td class="p-3 text-xs">
+                        <div dir="ltr" class="font-display font-semibold">${lead.phone}</div>
+                    </td>
+                    <td class="p-3 max-w-xs">
+                        <div class="text-xs font-semibold text-ghazara-purpleDark truncate" title="${lead.supportArea}">${lead.supportArea}</div>
+                        <div class="text-[11px] text-slate-500 truncate">${lead.goalToAchieve || ''}</div>
+                    </td>
+                    <td class="p-3">
+                        ${canAssign ? `
+                            <select onchange="updateLeadAssignee(${realIdx}, this.value)" class="text-xs font-bold rounded-xl px-2.5 py-1 border border-purple-200 bg-white">
+                                <option value="غير معين" ${lead.assignedTo === 'غير معين' ? 'selected' : ''}>غير معين</option>
+                                ${salesStaff.map(s => `<option value="${s.name}" ${lead.assignedTo === s.name ? 'selected' : ''}>${s.name}</option>`).join('')}
+                            </select>
+                        ` : `<span class="text-xs font-bold text-ghazara-purple">${lead.assignedTo || 'غير معين'}</span>`}
+                    </td>
+                    <td class="p-3">
+                        <select onchange="updateLeadStatus(${realIdx}, this.value)" class="text-xs font-bold rounded-full px-3 py-1 border ${lead.status === 'جديد' ? 'bg-orange-50 text-ghazara-orange border-orange-200' : 'bg-emerald-50 text-emerald-700 border-emerald-200'}">
+                            <option value="جديد" ${lead.status === 'جديد' ? 'selected' : ''}>جديد</option>
+                            <option value="تم التواصل" ${lead.status === 'تم التواصل' ? 'selected' : ''}>تم التواصل</option>
+                            <option value="عرض سعر" ${lead.status === 'عرض سعر' ? 'selected' : ''}>عرض سعر</option>
+                            <option value="مغلق ناجح" ${lead.status === 'مغلق ناجح' ? 'selected' : ''}>مغلق ناجح</option>
+                        </select>
+                    </td>
+                    <td class="p-3">
+                        <a href="https://wa.me/${String(lead.phone || '').replace(/[^0-9]/g, '')}" target="_blank" class="text-xs font-bold text-emerald-600 hover:underline">واتساب</a>
+                    </td>
+                </tr>
+            `}).join('');
+        }
+
+        async function updateLeadStatus(index, newStatus) {
+            const leads = JSON.parse(localStorage.getItem(GHAZARA_CONFIG.STORAGE_KEY_LEADS) || '[]');
+            if (leads[index]) {
+                leads[index].status = newStatus;
+                localStorage.setItem(GHAZARA_CONFIG.STORAGE_KEY_LEADS, JSON.stringify(leads));
+                loadLeadsTable();
+                await callGoogleScriptAPI({ action: 'updateLeadStatus', leadId: leads[index].leadId, status: newStatus, assignedTo: leads[index].assignedTo });
+                showPortalToast('تم تحديث حالة العميل.');
+            }
+        }
+
+        async function updateLeadAssignee(index, assigneeName) {
+            const leads = JSON.parse(localStorage.getItem(GHAZARA_CONFIG.STORAGE_KEY_LEADS) || '[]');
+            if (leads[index]) {
+                leads[index].assignedTo = assigneeName;
+                localStorage.setItem(GHAZARA_CONFIG.STORAGE_KEY_LEADS, JSON.stringify(leads));
+                loadLeadsTable();
+                await callGoogleScriptAPI({ action: 'updateLeadStatus', leadId: leads[index].leadId, status: leads[index].status, assignedTo: assigneeName });
+                showPortalToast(`تم إسناد العميل إلى: ${assigneeName}`);
+            }
+        }
+
+        // ==================== FIELD MARKETING LOGIC ====================
+        function getFieldVisits() {
+            return JSON.parse(localStorage.getItem(GHAZARA_CONFIG.STORAGE_KEY_FIELD_VISITS) || '[]');
+        }
+
+        async function handleAddFieldVisit(e) {
+            e.preventDefault();
+            const visit = {
+                visitId: 'FLD-' + Date.now().toString().slice(-5),
+                date: new Date().toLocaleString('ar-YE'),
+                businessName: document.getElementById('fvBusinessName').value.trim(),
+                contactPerson: document.getElementById('fvContactPerson').value.trim(),
+                phone: document.getElementById('fvPhone').value.trim(),
+                location: document.getElementById('fvLocation').value.trim(),
+                notes: document.getElementById('fvNotes').value.trim(),
+                outcome: document.getElementById('fvOutcome').value,
+                marketer: currentSessionUser?.empName || 'موظف تسويق ميداني',
+                convertedToLead: false
+            };
+            const list = getFieldVisits();
+            list.unshift(visit);
+            localStorage.setItem(GHAZARA_CONFIG.STORAGE_KEY_FIELD_VISITS, JSON.stringify(list));
+            document.getElementById('field-visit-form').reset();
+            renderFieldVisits();
+            showPortalToast('تم حفظ الزيارة الميدانية بنجاح.');
+        }
+
+        async function convertFieldVisitToLead(visitId) {
+            const list = getFieldVisits();
+            const idx = list.findIndex(v => v.visitId === visitId);
+            if (idx === -1) return;
+            const v = list[idx];
+
+            const leadData = {
+                action: 'addLead',
+                leadId: 'GHZ-' + Date.now().toString().slice(-6),
+                timestamp: new Date().toLocaleString('ar-YE'),
+                fullName: v.contactPerson,
+                organization: v.businessName,
+                phone: v.phone,
+                email: '',
+                sector: 'تسويق ميداني (' + v.location + ')',
+                supportArea: v.notes,
+                goalToAchieve: `محول من زيارة ميدانية (${v.visitId}) بواسطة ${v.marketer}`,
+                startTime: 'قريب',
+                status: 'جديد',
+                assignedTo: 'غير معين'
+            };
+
+            const leads = JSON.parse(localStorage.getItem(GHAZARA_CONFIG.STORAGE_KEY_LEADS) || '[]');
+            leads.unshift(leadData);
+            localStorage.setItem(GHAZARA_CONFIG.STORAGE_KEY_LEADS, JSON.stringify(leads));
+
+            list[idx].convertedToLead = true;
+            localStorage.setItem(GHAZARA_CONFIG.STORAGE_KEY_FIELD_VISITS, JSON.stringify(list));
+
+            renderFieldVisits();
+            loadLeadsTable();
+            await callGoogleScriptAPI(leadData);
+            showPortalToast(`تم تحويل الزيارة (${visitId}) إلى فرصة بيعية في قسم المبيعات!`);
+        }
+
+        function renderFieldVisits() {
+            const list = getFieldVisits();
+            const kpi = document.getElementById('exec-kpi-visits');
+            if (kpi) kpi.textContent = list.length;
+            const tbody = document.getElementById('field-visits-tbody');
+            if (!tbody) return;
+            if (!list.length) {
+                tbody.innerHTML = `<tr><td colspan="6" class="p-8 text-center text-slate-400">لا توجد زيارات ميدانية مسجلة بعد.</td></tr>`;
+                return;
+            }
+            tbody.innerHTML = list.map(v => `
+                <tr class="hover:bg-purple-50/40">
+                    <td class="p-3 font-display font-bold text-xs text-indigo-600">${v.visitId}<div class="text-[10px] text-slate-400">${v.date}</div></td>
+                    <td class="p-3"><div class="font-bold text-ghazara-purpleDark">${v.businessName}</div><div class="text-xs text-slate-500">📍 ${v.location}</div></td>
+                    <td class="p-3 text-xs"><div class="font-bold">${v.contactPerson}</div><div dir="ltr" class="font-display">${v.phone}</div></td>
+                    <td class="p-3 text-xs font-semibold text-ghazara-purple">${v.marketer}</td>
+                    <td class="p-3 text-xs max-w-xs"><div class="font-bold text-slate-700">${v.outcome}</div><div class="text-slate-500 truncate">${v.notes}</div></td>
+                    <td class="p-3">
+                        ${v.convertedToLead
+                            ? `<span class="px-3 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700">✓ تم التحويل للمبيعات</span>`
+                            : `<button onclick="convertFieldVisitToLead('${v.visitId}')" class="px-3 py-1.5 rounded-full text-xs font-bold bg-ghazara-orangeSoft text-ghazara-orange hover:bg-ghazara-orange hover:text-white transition-all">تحويل للمبيعات ⟵</button>`}
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        // ==================== DIGITAL MARKETING, DESIGN, MONTAGE & FINANCE NUCLEUS ====================
+        function handleAddCampaign(e) {
+            e.preventDefault();
+            const list = JSON.parse(localStorage.getItem(GHAZARA_CONFIG.STORAGE_KEY_CAMPAIGNS) || '[]');
+            list.unshift({
+                id: 'CMP-' + Date.now().toString().slice(-4),
+                title: document.getElementById('campTitle').value.trim(),
+                client: document.getElementById('campClient').value.trim(),
+                channel: document.getElementById('campChannel').value,
+                owner: currentSessionUser?.empName || 'التسويق',
+                status: 'نشطة'
+            });
+            localStorage.setItem(GHAZARA_CONFIG.STORAGE_KEY_CAMPAIGNS, JSON.stringify(list));
+            e.target.reset();
+            renderCampaigns();
+            showPortalToast('تمت إضافة الحملة التسويقية.');
+        }
+
+        function renderCampaigns() {
+            const list = JSON.parse(localStorage.getItem(GHAZARA_CONFIG.STORAGE_KEY_CAMPAIGNS) || '[]');
+            const box = document.getElementById('campaigns-list-box');
+            if (!box) return;
+            if (!list.length) {
+                box.innerHTML = `<p class="col-span-full text-center text-xs text-slate-400 py-6">لا توجد حملات مسجلة حالياً.</p>`;
+                return;
+            }
+            box.innerHTML = list.map(c => `
+                <div class="p-4 rounded-2xl bg-white border border-purple-100 space-y-1.5">
+                    <div class="flex items-center justify-between">
+                        <span class="font-display text-xs font-bold text-ghazara-purple">${c.id}</span>
+                        <span class="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700">${c.status}</span>
+                    </div>
+                    <h4 class="font-bold text-ghazara-purpleDark">${c.title}</h4>
+                    <p class="text-xs text-slate-500">العميل: ${c.client} | المسار: ${c.channel}</p>
+                </div>
+            `).join('');
+        }
+
+        function handleAddCreativeJob(e, jobType) {
+            e.preventDefault();
+            const isDesign = jobType === 'تصميم';
+            const title = document.getElementById(isDesign ? 'designTitle' : 'montageTitle').value.trim();
+            const client = document.getElementById(isDesign ? 'designClient' : 'montageClient').value.trim();
+            const link = document.getElementById(isDesign ? 'designLink' : 'montageLink').value.trim();
+
+            const list = JSON.parse(localStorage.getItem(GHAZARA_CONFIG.STORAGE_KEY_CREATIVE_JOBS) || '[]');
+            list.unshift({
+                id: (isDesign ? 'DSN-' : 'VID-') + Date.now().toString().slice(-4),
+                type: jobType,
+                title: title,
+                client: client,
+                link: link,
+                creator: currentSessionUser?.empName || jobType,
+                createdAt: new Date().toLocaleDateString('ar-YE')
+            });
+            localStorage.setItem(GHAZARA_CONFIG.STORAGE_KEY_CREATIVE_JOBS, JSON.stringify(list));
+            e.target.reset();
+            renderCreativeJobs();
+            showPortalToast(`تم تسجيل عمل الـ${jobType} بنجاح.`);
+        }
+
+        function renderCreativeJobs() {
+            const list = JSON.parse(localStorage.getItem(GHAZARA_CONFIG.STORAGE_KEY_CREATIVE_JOBS) || '[]');
+            const kpi = document.getElementById('exec-kpi-creative');
+            if (kpi) kpi.textContent = list.length;
+
+            const renderBox = (boxId, filterType) => {
+                const box = document.getElementById(boxId);
+                if (!box) return;
+                const items = list.filter(x => x.type === filterType);
+                if (!items.length) {
+                    box.innerHTML = `<p class="text-center text-xs text-slate-400 py-6">لا توجد أعمال ${filterType} مسجلة حالياً.</p>`;
+                    return;
+                }
+                box.innerHTML = items.map(item => `
+                    <div class="p-4 rounded-2xl bg-white border border-purple-100 flex flex-wrap items-center justify-between gap-3 text-xs">
+                        <div>
+                            <span class="font-display font-bold text-ghazara-purple">${item.id}</span>
+                            <strong class="text-sm text-ghazara-purpleDark mx-2">${item.title}</strong>
+                            <span class="text-slate-500">(${item.client} — بواسطة: ${item.creator})</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            ${item.link ? `<a href="${item.link}" target="_blank" class="px-3 py-1 rounded-full bg-ghazara-purpleSoft text-ghazara-purple font-bold hover:underline">معاينة المخرج ↗</a>` : ''}
+                            <span class="text-slate-400">${item.createdAt}</span>
+                        </div>
+                    </div>
+                `).join('');
+            };
+
+            renderBox('design-jobs-list', 'تصميم');
+            renderBox('montage-jobs-list', 'مونتاج');
+        }
+
+        function handleAddFinanceRecord(e) {
+            e.preventDefault();
+            const list = JSON.parse(localStorage.getItem(GHAZARA_CONFIG.STORAGE_KEY_FINANCE) || '[]');
+            list.unshift({
+                id: 'FIN-' + Date.now().toString().slice(-5),
+                date: new Date().toLocaleDateString('ar-YE'),
+                type: document.getElementById('finType').value,
+                party: document.getElementById('finParty').value.trim(),
+                amount: Number(document.getElementById('finAmount').value || 0),
+                desc: document.getElementById('finDesc').value.trim(),
+                byUser: currentSessionUser?.empName || 'المحاسب'
+            });
+            localStorage.setItem(GHAZARA_CONFIG.STORAGE_KEY_FINANCE, JSON.stringify(list));
+            e.target.reset();
+            renderFinanceTable();
+            showPortalToast('تم تسجيل القيد المالي بنجاح.');
+        }
+
+        function renderFinanceTable() {
+            const list = JSON.parse(localStorage.getItem(GHAZARA_CONFIG.STORAGE_KEY_FINANCE) || '[]');
+            const tbody = document.getElementById('finance-tbody');
+            if (!tbody) return;
+            if (!list.length) {
+                tbody.innerHTML = `<tr><td colspan="7" class="p-8 text-center text-slate-400">لا توجد قيود أو فواتير مالية مسجلة بعد.</td></tr>`;
+                return;
+            }
+            tbody.innerHTML = list.map(f => `
+                <tr class="hover:bg-emerald-50/30">
+                    <td class="p-3 font-display font-bold text-xs text-emerald-700">${f.id}</td>
+                    <td class="p-3 text-xs">${f.date}</td>
+                    <td class="p-3 text-xs font-bold">${f.type}</td>
+                    <td class="p-3 font-bold text-ghazara-purpleDark">${f.party}</td>
+                    <td class="p-3 text-xs text-slate-600">${f.desc}</td>
+                    <td class="p-3 font-display font-extrabold text-sm ${f.type === 'مصروف تشغيلي' ? 'text-red-600' : 'text-emerald-700'}">${f.amount.toLocaleString()}</td>
+                    <td class="p-3 text-xs text-slate-500">${f.byUser}</td>
+                </tr>
+            `).join('');
+        }
+
+        // ==================== HR & LEAVES LOGIC ====================
+        function getLeavesList() {
+            return JSON.parse(localStorage.getItem(GHAZARA_CONFIG.STORAGE_KEY_LEAVES) || '[]');
+        }
+
+        function canCurrentUserApproveLeaves() {
+            const role = currentSessionUser?.jobRole || '';
+            return role === 'المدير التنفيذي' || role === 'مدير الموارد البشرية';
+        }
+
+        function setupLeaveFormForUser() {
+            if (!currentSessionUser) return;
+            const today = new Date().toISOString().slice(0, 10);
+            document.getElementById('leaveStartDate').value = today;
+            document.getElementById('leaveEndDate').value = today;
+            document.getElementById('leaveDaysCount').value = 1;
+
+            const selectorWrap = document.getElementById('leave-applicant-selector-wrap');
+            const selectEl = document.getElementById('leaveApplicantSelect');
+            const staff = getStaffList();
+
+            if (canCurrentUserApproveLeaves()) {
+                selectorWrap.classList.remove('hidden');
+                selectEl.innerHTML = staff.map(emp => `
+                    <option value="${emp.name}" data-role="${emp.role}" data-dept="${emp.dept}" data-id="${emp.id}" data-user="${emp.username || ''}" ${emp.name === currentSessionUser.empName ? 'selected' : ''}>
+                        ${emp.name} — (${emp.role} | ${emp.dept})
+                    </option>
+                `).join('');
+                handleApplicantSelectionChange();
+            } else {
+                selectorWrap.classList.add('hidden');
+                document.getElementById('leaveEmpName').value = currentSessionUser.empName;
+                document.getElementById('leaveEmpRoleDept').value = `${currentSessionUser.jobRole} — ${currentSessionUser.department}`;
+            }
+
+            const hint = document.getElementById('leave-approval-hint');
+            if (hint) {
+                hint.textContent = canCurrentUserApproveLeaves()
+                    ? 'لديك صلاحية مراجعة واعتماد أو رفض طلبات الإجازات السنوية لجميع الموظفين والمدراء.'
+                    : 'يمكنك متابعة حالة طلبات إجازتك السنوية وقرارات الاعتماد من الموارد البشرية والإدارة.';
+            }
+        }
+
+        function handleApplicantSelectionChange() {
+            const selectEl = document.getElementById('leaveApplicantSelect');
+            const opt = selectEl.options[selectEl.selectedIndex];
+            if (opt) {
+                document.getElementById('leaveEmpName').value = opt.value;
+                document.getElementById('leaveEmpRoleDept').value = `${opt.getAttribute('data-role')} — ${opt.getAttribute('data-dept')}`;
+            }
+        }
+
+        function calculateLeaveDays() {
+            const s = document.getElementById('leaveStartDate').value;
+            const e = document.getElementById('leaveEndDate').value;
+            if (s && e) {
+                const d1 = new Date(s);
+                const d2 = new Date(e);
+                const diff = Math.round((d2 - d1) / (1000 * 60 * 60 * 24)) + 1;
+                if (diff > 0) {
+                    document.getElementById('leaveDaysCount').value = diff;
+                }
+            }
+        }
+
+        async function handleSubmitLeave(event) {
+            event.preventDefault();
+            const startDate = document.getElementById('leaveStartDate').value;
+            const endDate = document.getElementById('leaveEndDate').value;
+            const daysCount = Number(document.getElementById('leaveDaysCount').value || 0);
+            const leaveType = document.getElementById('leaveType').value;
+            const substituteEmp = document.getElementById('leaveSubstitute').value.trim();
+            const reason = document.getElementById('leaveReason').value.trim();
+
+            if (!startDate || !endDate || new Date(endDate) < new Date(startDate) || daysCount <= 0) {
+                showPortalToast('يرجى التأكد من أن تاريخ نهاية الإجازة يساوي أو يلي تاريخ البداية.', 'error');
+                return;
+            }
+
+            let targetName = currentSessionUser.empName;
+            let targetRole = currentSessionUser.jobRole;
+            let targetDept = currentSessionUser.department;
+            let targetUser = currentSessionUser.username;
+            let targetEmpId = 'EMP-101';
+
+            const selectEl = document.getElementById('leaveApplicantSelect');
+            if (!document.getElementById('leave-applicant-selector-wrap').classList.contains('hidden') && selectEl.selectedIndex >= 0) {
+                const opt = selectEl.options[selectEl.selectedIndex];
+                targetName = opt.value;
+                targetRole = opt.getAttribute('data-role') || targetRole;
+                targetDept = opt.getAttribute('data-dept') || targetDept;
+                targetEmpId = opt.getAttribute('data-id') || targetEmpId;
+                targetUser = opt.getAttribute('data-user') || targetUser;
+            }
+
+            const btn = document.getElementById('leave-submit-btn');
+            const spinner = document.getElementById('leave-submit-spinner');
+            const btnText = document.getElementById('leave-submit-text');
+
+            btn.disabled = true;
+            spinner.classList.remove('hidden');
+            btnText.textContent = 'جاري حفظ طلب الإجازة...';
+
+            const payload = {
+                action: 'submitLeaveRequest',
+                empId: targetEmpId,
+                empName: targetName,
+                username: targetUser,
+                jobRole: targetRole,
+                department: targetDept,
+                leaveType: leaveType,
+                startDate: startDate,
+                endDate: endDate,
+                daysCount: daysCount,
+                substituteEmp: substituteEmp,
+                reason: reason
+            };
+
+            const apiRes = await callGoogleScriptAPI(payload);
+            const requestId = (apiRes && apiRes.requestId) ? apiRes.requestId : ('LVR-2026-' + Math.floor(1000 + Math.random() * 9000));
+            const nowStr = new Date().toLocaleString('ar-YE', { timeZone: GHAZARA_CONFIG.TIMEZONE });
+
+            const leaves = getLeavesList();
+            leaves.unshift({
+                requestId: requestId,
+                empId: targetEmpId,
+                empName: targetName,
+                username: targetUser,
+                jobRole: targetRole,
+                department: targetDept,
+                leaveType: leaveType,
+                startDate: startDate,
+                endDate: endDate,
+                daysCount: daysCount,
+                substituteEmp: substituteEmp || 'غير محدد',
+                reason: reason,
+                status: 'بانتظار الاعتماد',
+                hrApproval: 'بانتظار المراجعة',
+                execApproval: 'بانتظار المراجعة',
+                managerNotes: '',
+                createdAt: nowStr,
+                updatedAt: nowStr
+            });
+            localStorage.setItem(GHAZARA_CONFIG.STORAGE_KEY_LEAVES, JSON.stringify(leaves));
+
+            btn.disabled = false;
+            spinner.classList.add('hidden');
+            btnText.textContent = 'إرسال طلب الإجازة السنوية';
+            document.getElementById('leaveSubstitute').value = '';
+            document.getElementById('leaveReason').value = '';
+
+            renderLeavesTable();
+            showPortalToast(`تم تسجيل طلب الإجازة السنوية (${requestId}) بنجاح.`);
+        }
+
+        function renderLeavesTable() {
+            const allLeaves = getLeavesList();
+            const filterVal = document.getElementById('leaveFilterStatus')?.value || 'ALL';
+            const staff = getStaffList();
+            const currentEmpRecord = staff.find(s => s.name === currentSessionUser?.empName);
+            const entitled = Number(currentEmpRecord?.annualBalance || 30);
+
+            const myLeaves = allLeaves.filter(l => l.empName === currentSessionUser?.empName || l.username === currentSessionUser?.username);
+            const myApprovedDays = myLeaves.filter(l => l.status === 'معتمد').reduce((acc, item) => acc + Number(item.daysCount || 0), 0);
+            const myPendingCount = myLeaves.filter(l => l.status === 'بانتظار الاعتماد').length;
+
+            document.getElementById('leave-kpi-entitled').textContent = entitled;
+            document.getElementById('leave-kpi-used').textContent = myApprovedDays;
+            document.getElementById('leave-kpi-remaining').textContent = Math.max(0, entitled - myApprovedDays);
+            document.getElementById('leave-kpi-pending').textContent = canCurrentUserApproveLeaves()
+                ? allLeaves.filter(l => l.status === 'بانتظار الاعتماد').length
+                : myPendingCount;
+
+            const execLeaves = document.getElementById('exec-kpi-leaves');
+            if (execLeaves) execLeaves.textContent = allLeaves.length;
+
+            let visibleLeaves = canCurrentUserApproveLeaves() ? allLeaves : myLeaves;
+
+            if (filterVal !== 'ALL') {
+                visibleLeaves = visibleLeaves.filter(l => l.status === filterVal);
+            }
+
+            const tbody = document.getElementById('leaves-table-body');
+            if (!tbody) return;
+
+            if (visibleLeaves.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="7" class="p-8 text-center text-slate-400">لا توجد طلبات إجازة سنوية مسجلة ضمن هذا الفلتر حالياً.</td></tr>`;
+                return;
+            }
+
+            const hasApprovalRight = canCurrentUserApproveLeaves();
+
+            tbody.innerHTML = visibleLeaves.map(lv => {
+                let badgeClass = 'bg-amber-50 text-amber-700 border-amber-200';
+                if (lv.status === 'معتمد') badgeClass = 'bg-emerald-50 text-emerald-700 border-emerald-200';
+                if (lv.status === 'مرفوض') badgeClass = 'bg-red-50 text-red-700 border-red-200';
+
+                return `
+                <tr class="hover:bg-purple-50/40 transition-colors">
+                    <td class="p-3 font-display font-bold text-xs text-ghazara-purple">${lv.requestId}</td>
+                    <td class="p-3">
+                        <div class="font-bold text-ghazara-purpleDark">${lv.empName}</div>
+                        <div class="text-[11px] text-slate-500">${lv.jobRole} — ${lv.department}</div>
+                    </td>
+                    <td class="p-3 text-xs">
+                        <div class="font-bold text-ghazara-teal">${lv.leaveType}</div>
+                        <div class="font-display text-slate-500" dir="ltr">${lv.startDate} → ${lv.endDate}</div>
+                    </td>
+                    <td class="p-3 font-display font-bold text-sm text-ghazara-purpleDark">${lv.daysCount} يوم</td>
+                    <td class="p-3 text-xs max-w-xs">
+                        <div class="font-semibold text-slate-700">البديل: ${lv.substituteEmp || 'غير محدد'}</div>
+                        <div class="text-slate-500 truncate" title="${lv.reason}">${lv.reason}</div>
+                        ${lv.managerNotes ? `<div class="text-[11px] text-ghazara-purple mt-1">ملاحظة الإدارة: ${lv.managerNotes}</div>` : ''}
+                    </td>
+                    <td class="p-3">
+                        <span class="px-3 py-1 rounded-full text-xs font-bold border ${badgeClass}">${lv.status}</span>
+                    </td>
+                    <td class="p-3">
+                        ${hasApprovalRight ? `
+                            <button onclick="openLeaveDecisionModal('${lv.requestId}')" class="text-xs font-bold text-ghazara-purple bg-ghazara-purpleSoft hover:bg-ghazara-purple hover:text-white px-3.5 py-1.5 rounded-full transition-all">
+                                اتخاذ قرار
+                            </button>
+                        ` : `<span class="text-[11px] text-slate-400">${lv.updatedAt || lv.createdAt}</span>`}
+                    </td>
+                </tr>
+                `;
+            }).join('');
+        }
+
+        function openLeaveDecisionModal(requestId) {
+            const leaves = getLeavesList();
+            const found = leaves.find(l => l.requestId === requestId);
+            if (!found) return;
+            selectedLeaveRequestForDecision = found;
+            document.getElementById('leave-modal-summary').innerHTML =
+                `<strong>${found.empName} (${found.jobRole})</strong><br>` +
+                `${found.leaveType} لمدة <strong>${found.daysCount} يوم</strong> من ${found.startDate} إلى ${found.endDate}<br>` +
+                `السبب: ${found.reason}`;
+            document.getElementById('leaveDecisionStatus').value = found.status === 'بانتظار الاعتماد' ? 'معتمد' : found.status;
+            document.getElementById('leaveDecisionNotes').value = found.managerNotes || '';
+            document.getElementById('leave-decision-modal').classList.remove('hidden');
+        }
+
+        function closeLeaveDecisionModal() {
+            selectedLeaveRequestForDecision = null;
+            document.getElementById('leave-decision-modal').classList.add('hidden');
+        }
+
+        async function confirmLeaveDecision() {
+            if (!selectedLeaveRequestForDecision) return;
+            const newStatus = document.getElementById('leaveDecisionStatus').value;
+            const notes = document.getElementById('leaveDecisionNotes').value.trim();
+            const saveBtn = document.getElementById('leave-decision-save-btn');
+            saveBtn.disabled = true;
+            saveBtn.textContent = 'جاري الحفظ...';
+
+            const isCEO = currentSessionUser?.jobRole === 'المدير التنفيذي';
+            const payload = {
+                action: 'updateLeaveStatus',
+                requestId: selectedLeaveRequestForDecision.requestId,
+                status: newStatus,
+                hrApproval: !isCEO ? newStatus : selectedLeaveRequestForDecision.hrApproval,
+                execApproval: isCEO ? newStatus : selectedLeaveRequestForDecision.execApproval,
+                managerNotes: notes,
+                byUser: currentSessionUser?.empName || 'الإدارة'
+            };
+
+            await callGoogleScriptAPI(payload);
+
+            const leaves = getLeavesList();
+            const idx = leaves.findIndex(l => l.requestId === selectedLeaveRequestForDecision.requestId);
+            if (idx !== -1) {
+                leaves[idx].status = newStatus;
+                leaves[idx].managerNotes = notes;
+                leaves[idx].updatedAt = new Date().toLocaleString('ar-YE', { timeZone: GHAZARA_CONFIG.TIMEZONE });
+                localStorage.setItem(GHAZARA_CONFIG.STORAGE_KEY_LEAVES, JSON.stringify(leaves));
+            }
+
+            saveBtn.disabled = false;
+            saveBtn.textContent = 'حفظ القرار في قاعدة البيانات';
+            closeLeaveDecisionModal();
+            renderLeavesTable();
+            showPortalToast(`تم تحديث حالة طلب الإجازة (${payload.requestId}) إلى: ${newStatus}`);
+        }
+
+        function loadHRTable() {
+            const staff = getStaffList();
+            const execStaff = document.getElementById('exec-kpi-staff');
+            if (execStaff) execStaff.textContent = staff.length;
+
+            const tbody = document.getElementById('hr-table-body');
+            if (!tbody) return;
+            tbody.innerHTML = staff.map(emp => `
+                <tr class="hover:bg-purple-50/40 transition-colors">
+                    <td class="p-3.5 font-display font-bold text-xs text-ghazara-purple">${emp.id}</td>
+                    <td class="p-3.5 font-bold text-ghazara-purpleDark">${emp.name}</td>
+                    <td class="p-3.5 text-xs font-bold text-ghazara-purple">${emp.role}</td>
+                    <td class="p-3.5 text-xs font-semibold text-ghazara-orange">${emp.dept}</td>
+                    <td class="p-3.5 font-display text-xs" dir="ltr">${emp.phone}</td>
+                    <td class="p-3.5 font-display text-xs font-bold text-ghazara-teal">${emp.annualBalance || 30} يوم</td>
+                    <td class="p-3.5"><span class="px-3 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700">${emp.status}</span></td>
+                </tr>
+            `).join('');
+        }
+
+        async function handleAddEmployee(e) {
+            e.preventDefault();
+            const staff = getStaffList();
+            const newEmp = {
+                action: 'addEmployee',
+                id: 'EMP-' + (101 + staff.length),
+                name: document.getElementById('empName').value.trim(),
+                role: document.getElementById('empRole').value,
+                dept: document.getElementById('empDept').value.trim(),
+                phone: document.getElementById('empPhone').value.trim(),
+                annualBalance: Number(document.getElementById('empLeaveBalance').value || 30),
+                status: 'على رأس العمل',
+                byUser: currentSessionUser?.empName || 'HR'
+            };
+            staff.push(newEmp);
+            localStorage.setItem(GHAZARA_CONFIG.STORAGE_KEY_HR, JSON.stringify(staff));
+            document.getElementById('hr-employee-form').reset();
+            loadHRTable();
+            populateSalesAssigneesDropdown();
+            setupLeaveFormForUser();
+            await callGoogleScriptAPI(newEmp);
+            showPortalToast('تمت إضافة الموظف وحفظه في سجل الموارد البشرية.');
+        }
+
+        async function syncDataFromGoogleSheets() {
+            const hrRes = await callGoogleScriptAPI({ action: 'getHRData' });
+            if (!hrRes.fallbackToLocal && hrRes.status === 'success') {
+                if (Array.isArray(hrRes.staff) && hrRes.staff.length) {
+                    localStorage.setItem(GHAZARA_CONFIG.STORAGE_KEY_HR, JSON.stringify(hrRes.staff));
+                }
+                if (Array.isArray(hrRes.leaves)) {
+                    localStorage.setItem(GHAZARA_CONFIG.STORAGE_KEY_LEAVES, JSON.stringify(hrRes.leaves));
+                }
+            }
+            const leadsRes = await callGoogleScriptAPI({ action: 'getLeads' });
+            if (!leadsRes.fallbackToLocal && leadsRes.status === 'success' && Array.isArray(leadsRes.leads)) {
+                localStorage.setItem(GHAZARA_CONFIG.STORAGE_KEY_LEADS, JSON.stringify(leadsRes.leads));
+            }
+            loadHRTable();
+            populateSalesAssigneesDropdown();
+            renderLeavesTable();
+            loadLeadsTable();
+        }
+
+        function exportLeadsToCSV() {
+            const leads = JSON.parse(localStorage.getItem(GHAZARA_CONFIG.STORAGE_KEY_LEADS) || '[]');
+            if (!leads.length) {
+                showPortalToast('لا توجد بيانات مبيعات لتصديرها حالياً.', 'error');
+                return;
+            }
+            const headers = ['رقم المرجع', 'التاريخ', 'الاسم', 'الجهة', 'الهاتف', 'البريد', 'القطاع', 'المجال المطلوب', 'الهدف', 'المندوب المسؤول', 'الحالة'];
+            const rows = leads.map(l => [l.leadId, l.timestamp, l.fullName, l.organization, l.phone, l.email, l.sector, l.supportArea, l.goalToAchieve, l.assignedTo, l.status]);
+            let csvContent = '\uFEFF' + headers.join(',') + '\n' + rows.map(r => r.map(v => `"${String(v || '').replace(/"/g, '""')}"`).join(',')).join('\n');
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'ghazara-sales-leads.csv';
+            a.click();
+        }
+
+        function exportLeavesToCSV() {
+            const leaves = getLeavesList();
+            if (!leaves.length) {
+                showPortalToast('لا توجد طلبات إجازة لتصديرها حالياً.', 'error');
+                return;
+            }
+            const headers = ['رقم الطلب', 'اسم الموظف/المدير', 'المسمى الوظيفي', 'القسم', 'نوع الإجازة', 'من تاريخ', 'إلى تاريخ', 'عدد الأيام', 'البديل', 'السبب', 'الحالة', 'ملاحظات الإدارة'];
+            const rows = leaves.map(l => [l.requestId, l.empName, l.jobRole, l.department, l.leaveType, l.startDate, l.endDate, l.daysCount, l.substituteEmp, l.reason, l.status, l.managerNotes]);
+            let csvContent = '\uFEFF' + headers.join(',') + '\n' + rows.map(r => r.map(v => `"${String(v || '').replace(/"/g, '""')}"`).join(',')).join('\n');
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'ghazara-annual-leaves.csv';
+            a.click();
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            initPortalByRole();
+            loadLeadsTable();
+            loadHRTable();
+            renderLeavesTable();
+            renderFieldVisits();
+            renderCampaigns();
+            renderCreativeJobs();
+            renderFinanceTable();
+            syncDataFromGoogleSheets();
+        });
+    </script>
+</body>
+</html>
