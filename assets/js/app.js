@@ -36,7 +36,7 @@ const GHAZARA_ROLES_PERMISSIONS = {
         canApproveExecutiveTasks: true,
         canAssignSalesLeads: true,
         canManageAllDepartments: true,
-        title: 'لوحة القيادة التنفيذية الشاملة (CEO)',
+        title: 'لوحة القيادة التنفيذية الشاملة',
         description: 'صلاحية كاملة للإشراف على الإدارة العامة، الموارد البشرية، المبيعات، التسويق الرقمي والميداني، التصميم والمونتاج، والمالية.'
     },
     'مدير الموارد البشرية': {
@@ -46,7 +46,7 @@ const GHAZARA_ROLES_PERMISSIONS = {
         canApproveLeaves: true,
         canApproveExecutiveTasks: false,
         canAssignSalesLeads: false,
-        title: 'إدارة الموارد البشرية والشؤون الإدارية (HR Manager)',
+        title: 'إدارة الموارد البشرية والشؤون الإدارية',
         description: 'إدارة كاملة لملفات الموظفين، الهيكل التنظيمي، صلاحيات الحسابات، مراجعة واعتماد طلبات الإجازات السنوية، ولوحة المهام الإدارية.'
     },
     'مدير المبيعات': {
@@ -56,7 +56,7 @@ const GHAZARA_ROLES_PERMISSIONS = {
         canApproveLeaves: false,
         canApproveExecutiveTasks: false,
         canAssignSalesLeads: true,
-        title: 'إدارة المبيعات وتطوير الأعمال (Sales Manager)',
+        title: 'إدارة المبيعات وتطوير الأعمال',
         description: 'إدارة كاملة لطلبات العملاء، توزيع الفرص البيعية على موظفي المبيعات، متابعة مخرجات التسويق الميداني، وطلبات الإجازات.'
     },
     'موظف مبيعات': {
@@ -66,7 +66,7 @@ const GHAZARA_ROLES_PERMISSIONS = {
         canApproveLeaves: false,
         canApproveExecutiveTasks: false,
         canAssignSalesLeads: false,
-        title: 'بوابة موظف المبيعات (Sales Representative)',
+        title: 'بوابة موظف المبيعات',
         description: 'متابعة العملاء والفرص البيعية المسندة، تسجيل العملاء الجدد، تحديث حالات التفاوض وعروض الأسعار، وطلب الإجازة السنوية.'
     },
     'مدير التسويق': {
@@ -76,7 +76,7 @@ const GHAZARA_ROLES_PERMISSIONS = {
         canApproveLeaves: false,
         canApproveExecutiveTasks: false,
         canAssignSalesLeads: false,
-        title: 'إدارة التسويق والاستراتيجيات (Marketing Manager)',
+        title: 'إدارة التسويق والاستراتيجيات',
         description: 'الإشراف الشامل على الحملات التسويقية، فريق التسويق الرقمي والميداني، استوديو التصميم ووحدة المونتاج، ولوحة المهام.'
     },
     'موظف تسويق': {
@@ -86,7 +86,7 @@ const GHAZARA_ROLES_PERMISSIONS = {
         canApproveLeaves: false,
         canApproveExecutiveTasks: false,
         canAssignSalesLeads: false,
-        title: 'بوابة أخصائي التسويق الرقمي (Marketing Specialist)',
+        title: 'بوابة أخصائي التسويق الرقمي',
         description: 'إدارة الحملات التسويقية الرقمية، خطط المحتوى، التنسيق مع التصميم والمونتاج، ومتابعة المهام وطلب الإجازة السنوية.'
     },
     'موظف تسويق ميداني': {
@@ -96,7 +96,7 @@ const GHAZARA_ROLES_PERMISSIONS = {
         canApproveLeaves: false,
         canApproveExecutiveTasks: false,
         canAssignSalesLeads: false,
-        title: 'بوابة التسويق الميداني واستقطاب العملاء (Field Marketer)',
+        title: 'بوابة التسويق الميداني واستقطاب العملاء',
         description: 'توثيق الزيارات الميدانية للمنشآت، حصر احتياجات العملاء في السوق، وتحويل الفرص الميدانية إلى قسم المبيعات.'
     },
     'مصمم': {
@@ -106,7 +106,7 @@ const GHAZARA_ROLES_PERMISSIONS = {
         canApproveLeaves: false,
         canApproveExecutiveTasks: false,
         canAssignSalesLeads: false,
-        title: 'استوديو التصميم الجرافيكي والهوية البصرية (Graphic Designer)',
+        title: 'استوديو التصميم الجرافيكي والهوية البصرية',
         description: 'استلام وتنفيذ طلبات التصميم الجرافيكي، الهويات البصرية، منشورات التواصل الاجتماعي، ورفع روابط التسليم للاعتماد.'
     },
     'موظف مونتاج': {
@@ -116,7 +116,7 @@ const GHAZARA_ROLES_PERMISSIONS = {
         canApproveLeaves: false,
         canApproveExecutiveTasks: false,
         canAssignSalesLeads: false,
-        title: 'وحدة المونتاج والإنتاج المرئي (Video Editor)',
+        title: 'وحدة المونتاج والإنتاج المرئي',
         description: 'إدارة مشاريع مونتاج الفيديو، الريلز الإعلانية، والموشن جرافيك، ورفع روابط المعاينة النهائية لاعتماد التسويق والإدارة.'
     },
     'محاسب': {
@@ -126,7 +126,7 @@ const GHAZARA_ROLES_PERMISSIONS = {
         canApproveLeaves: false,
         canApproveExecutiveTasks: false,
         canAssignSalesLeads: false,
-        title: 'الإدارة المالية والحسابات (Accountant)',
+        title: 'الإدارة المالية والحسابات',
         description: 'إدارة الفواتير، التحصيلات المالية للعقود والمبيعات، قيد المصروفات التشغيلية، وطلبات الإجازة السنوية.'
     }
 };
@@ -135,30 +135,8 @@ const GHAZARA_ROLES_PERMISSIONS = {
  * سجل المستخدمين العشرة المطابق لصفحة (المستخدمين) في Google Sheets
  */
 function getLocalUsersSheet() {
-    try {
-        let users = JSON.parse(localStorage.getItem(GHAZARA_CONFIG.STORAGE_KEY_USERS) || 'null');
-        const requiredRoles = Object.keys(GHAZARA_ROLES_PERMISSIONS);
-        const hasOutdatedRoles = Array.isArray(users) && users.some(u => !requiredRoles.includes(u.jobRole));
-
-        if (!users || !Array.isArray(users) || users.length === 0 || hasOutdatedRoles) {
-            users = [
-                { userId: 'USR-01', empName: 'سالم باحارثة', username: 'ceo', password: '123456', department: 'الإدارة العامة والتنفيذية', jobRole: 'المدير التنفيذي', email: 'ceo@ghazaraye.com', mustChangePassword: false },
-                { userId: 'USR-02', empName: 'أحمد الكاف', username: 'sales_mgr', password: '123456', department: 'المبيعات وتطوير الأعمال', jobRole: 'مدير المبيعات', email: 'sales.mgr@ghazaraye.com', mustChangePassword: false },
-                { userId: 'USR-03', empName: 'فاطمة السقاف', username: 'hr_mgr', password: '123456', department: 'الموارد البشرية', jobRole: 'مدير الموارد البشرية', email: 'hr.mgr@ghazaraye.com', mustChangePassword: false },
-                { userId: 'USR-04', empName: 'خالد باوزير', username: 'sales_rep', password: '123456', department: 'المبيعات وتطوير الأعمال', jobRole: 'موظف مبيعات', email: 'sales@ghazaraye.com', mustChangePassword: false },
-                { userId: 'USR-05', empName: 'سارة بن سميط', username: 'mkt_mgr', password: '123456', department: 'التسويق', jobRole: 'مدير التسويق', email: 'marketing.mgr@ghazaraye.com', mustChangePassword: false },
-                { userId: 'USR-06', empName: 'محمد العطاس', username: 'mkt_specialist', password: '123456', department: 'التسويق الرقمي', jobRole: 'موظف تسويق', email: 'marketing@ghazaraye.com', mustChangePassword: false },
-                { userId: 'USR-07', empName: 'ياسر الكثيري', username: 'designer', password: '123456', department: 'استوديو التصميم والمونتاج', jobRole: 'مصمم', email: 'design@ghazaraye.com', mustChangePassword: false },
-                { userId: 'USR-08', empName: 'عبدالرحمن باجابر', username: 'accountant', password: '123456', department: 'المالية والحسابات', jobRole: 'محاسب', email: 'finance@ghazaraye.com', mustChangePassword: false },
-                { userId: 'USR-09', empName: 'عمر باعباد', username: 'video_editor', password: '123456', department: 'استوديو التصميم والمونتاج', jobRole: 'موظف مونتاج', email: 'montage@ghazaraye.com', mustChangePassword: false },
-                { userId: 'USR-10', empName: 'طارق النهدي', username: 'field_mkt', password: '123456', department: 'التسويق الميداني', jobRole: 'موظف تسويق ميداني', email: 'field@ghazaraye.com', mustChangePassword: false }
-            ];
-            localStorage.setItem(GHAZARA_CONFIG.STORAGE_KEY_USERS, JSON.stringify(users));
-        }
-        return users;
-    } catch (e) {
-        return [];
-    }
+    // تم إزالة كافة البيانات الافتراضية ليعتمد النظام بنسبة 100% على Google Sheets
+    return [];
 }
 
 /**

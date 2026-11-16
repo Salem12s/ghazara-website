@@ -1,6 +1,7 @@
 /**
  * المكونات المشتركة لموقع غزارة للتجارة والتسويق (الهيدر + الفوتر + خلفية الأورورا)
- * تعديل هذا الملف ينعكس تلقائياً في كافة صفحات الموقع
+ * تم إخفاء وإزالة أزرار وروابط "بوابة الموظفين" من الصفحات العامة للأمان،
+ * بحيث لا يتم الدخول للبوابة إلا عبر الرابط المباشر السري: /portai/login
  */
 
 function getHeaderHTML(activePage) {
@@ -45,35 +46,22 @@ function getHeaderHTML(activePage) {
                             <span class="font-display text-sm sm:text-[15px] font-extrabold text-ghazara-purple tracking-wide -mt-0.5">Ghazara</span>
                             <span class="text-[10px] sm:text-[11px] font-semibold text-ghazara-orange tracking-normal mt-0.5">للتجارة والتسويق</span>
                         </div>
-                        <svg class="w-12 h-12 sm:w-14 sm:h-14 shrink-0 transform group-hover:scale-105 transition-transform duration-300" viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <defs>
-                                <linearGradient id="ghazaraLogoGrad" x1="60" y1="10" x2="60" y2="112" gradientUnits="userSpaceOnUse">
-                                    <stop offset="0%" stop-color="#5B2C83" />
-                                    <stop offset="48%" stop-color="#6B3598" />
-                                    <stop offset="75%" stop-color="#D96B38" />
-                                    <stop offset="100%" stop-color="#EC8232" />
-                                </linearGradient>
-                            </defs>
-                            <path d="M52 14C52 9.5 55.5 6 60 6H66V18H52V14Z" fill="#5B2C83"/>
-                            <path d="M66 23H54C30.8 23 12 41.8 12 65C12 85.4 26.5 102.4 45.8 106.2L36 115L62 110C86.3 108.5 104 88.8 104 65V58H90V65C90 81.6 76.6 95 60 95C43.4 95 30 81.6 30 65C30 48.4 43.4 35 60 35H66V23Z" fill="url(#ghazaraLogoGrad)"/>
-                            <path d="M62 43C48.7 43 38 53.7 38 67C38 80.3 48.7 91 62 91C73.4 91 82.9 83 85.4 72.3H89L78 60L67 72.3H73.2C71.1 77.4 66.9 80 62 80C54.3 80 48 73.7 48 66C48 58.3 54.3 52 62 52C65.8 52 69.2 53.5 71.7 56L79.5 48.2C75 44.9 68.8 43 62 43Z" fill="#5B2C83"/>
-                            <rect x="65" y="48" width="11" height="11" rx="2.5" fill="#5B2C83"/>
-                            <rect x="81" y="32" width="14" height="14" rx="3" fill="#5B2C83"/>
-                            <path d="M73 51L84 41" stroke="#5B2C83" stroke-width="5" stroke-linecap="round"/>
-                        </svg>
+                        <img 
+                            src="assets/ghazara-logo.png" 
+                            alt="شعار غزارة للتجارة والتسويق" 
+                            class="h-12 sm:h-14 w-auto shrink-0 object-contain transform group-hover:scale-105 transition-transform duration-300" 
+                        />
                     </div>
                 </a>
+
 
                 <!-- Desktop Navigation Links -->
                 <nav class="hidden md:flex items-center gap-7 lg:gap-9" aria-label="القائمة الرئيسية">
                     ${desktopLinks}
                 </nav>
 
-                <!-- Header CTA + Portal Link -->
+                <!-- Header CTA Only (Portal button removed from public pages) -->
                 <div class="hidden md:flex items-center gap-3">
-                    <a href="portal/login.html" class="text-xs font-bold text-ghazara-purple bg-ghazara-purpleSoft/80 hover:bg-ghazara-purpleSoft px-4 py-2.5 rounded-full transition-all border border-purple-200/60" title="بوابة الموظفين (المبيعات والموارد البشرية)">
-                        بوابة الموظفين
-                    </a>
                     <a href="contact.html" class="btn-orange-gradient font-semibold text-sm lg:text-base px-6 py-2.5 rounded-full inline-flex items-center gap-2">
                         <span>ابدأ من احتياجك</span>
                     </a>
@@ -97,9 +85,6 @@ function getHeaderHTML(activePage) {
         <!-- Mobile Navigation Drawer -->
         <div id="mobile-menu" class="hidden md:hidden bg-white/95 backdrop-blur-2xl border-b border-purple-100 px-4 pt-3 pb-6 space-y-2 shadow-xl">
             ${mobileLinks}
-            <a href="portal/login.html" class="w-full text-right block px-4 py-3 rounded-2xl text-sm font-bold text-ghazara-purple bg-purple-50/60">
-                بوابة الموظفين
-            </a>
             <div class="pt-2">
                 <a href="contact.html" class="w-full btn-orange-gradient font-bold py-3.5 rounded-full flex items-center justify-center gap-2">
                     <span>ابدأ من احتياجك</span>
@@ -125,22 +110,11 @@ function getFooterHTML() {
                             <span class="font-display text-xs font-extrabold text-ghazara-purple">Ghazara</span>
                             <span class="text-[10px] font-semibold text-ghazara-orange mt-0.5">للتجارة والتسويق</span>
                         </div>
-                        <svg class="w-11 h-11 shrink-0" viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <defs>
-                                <linearGradient id="ghazaraFooterLogoGrad" x1="60" y1="10" x2="60" y2="112" gradientUnits="userSpaceOnUse">
-                                    <stop offset="0%" stop-color="#5B2C83" />
-                                    <stop offset="48%" stop-color="#6B3598" />
-                                    <stop offset="75%" stop-color="#D96B38" />
-                                    <stop offset="100%" stop-color="#EC8232" />
-                                </linearGradient>
-                            </defs>
-                            <path d="M52 14C52 9.5 55.5 6 60 6H66V18H52V14Z" fill="#5B2C83"/>
-                            <path d="M66 23H54C30.8 23 12 41.8 12 65C12 85.4 26.5 102.4 45.8 106.2L36 115L62 110C86.3 108.5 104 88.8 104 65V58H90V65C90 81.6 76.6 95 60 95C43.4 95 30 81.6 30 65C30 48.4 43.4 35 60 35H66V23Z" fill="url(#ghazaraFooterLogoGrad)"/>
-                            <path d="M62 43C48.7 43 38 53.7 38 67C38 80.3 48.7 91 62 91C73.4 91 82.9 83 85.4 72.3H89L78 60L67 72.3H73.2C71.1 77.4 66.9 80 62 80C54.3 80 48 73.7 48 66C48 58.3 54.3 52 62 52C65.8 52 69.2 53.5 71.7 56L79.5 48.2C75 44.9 68.8 43 62 43Z" fill="#5B2C83"/>
-                            <rect x="65" y="48" width="11" height="11" rx="2.5" fill="#5B2C83"/>
-                            <rect x="81" y="32" width="14" height="14" rx="3" fill="#5B2C83"/>
-                            <path d="M73 51L84 41" stroke="#5B2C83" stroke-width="5" stroke-linecap="round"/>
-                        </svg>
+                        <img 
+                            src="assets/ghazara-logo.png" 
+                            alt="شعار غزارة" 
+                            class="h-11 w-auto shrink-0 object-contain" 
+                        />
                         <span class="text-lg font-bold text-ghazara-purpleDark mr-1">غزارة للتجارة والتسويق</span>
                     </div>
                     <p class="text-slate-600 text-sm sm:text-base leading-relaxed max-w-sm">
@@ -171,10 +145,13 @@ function getFooterHTML() {
                                 <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
                             </svg>
                         </a>
+                        <span dir="ltr" class="font-display text-sm font-bold text-ghazara-purple tracking-wide">
+                            @Ghazaraye
+                        </span>
                     </div>
                 </div>
 
-                <!-- روابط رئيسية -->
+                <!-- روابط رئيسية (بدون رابط بوابة الموظفين) -->
                 <div class="md:col-span-3 space-y-3">
                     <h3 class="text-sm font-bold text-ghazara-purple uppercase tracking-wider">روابط رئيسية</h3>
                     <ul class="space-y-2.5 text-sm text-slate-600">
@@ -183,7 +160,6 @@ function getFooterHTML() {
                         <li><a href="services.html" class="hover:text-ghazara-purple font-medium transition-colors">خدماتنا</a></li>
                         <li><a href="methodology.html" class="hover:text-ghazara-purple font-medium transition-colors">منهجية عملنا</a></li>
                         <li><a href="contact.html" class="hover:text-ghazara-purple font-medium transition-colors">تواصل معنا</a></li>
-                        <li><a href="portal/login.html" class="hover:text-ghazara-orange font-semibold transition-colors">بوابة الموظفين</a></li>
                     </ul>
                 </div>
 
@@ -207,7 +183,6 @@ function getFooterHTML() {
                                     <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
                                         <circle cx="12" cy="12" r="12" fill="#EC8232"/>
                                         <path fill="#FFFFFF" d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L0 24l6.335-1.662c1.746.953 3.71 1.454 5.709 1.455h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
-                                        
                                     </svg>
                                 </span>
                                 <span>واتساب: <strong dir="ltr" class="font-display font-semibold">783 334 002</strong></span>
