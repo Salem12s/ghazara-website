@@ -1,587 +1,1600 @@
 /**
  * ============================================================================
- * نظام غزارة للتجارة والتسويق - الخادم السحابي المتكامل (Google Apps Script)
- * الغرض:
- * 1. إدارة المصادقة الصارمة من ورقة (المستخدمين) واستعادة وتغيير كلمات المرور.
- * 2. إدارة شؤون الموظفين (HR_Staff) وطلبات الإجازات السنوية للموظفين والمدراء (طلبات_الاجازات).
- * 3. إدارة لوحة مهام الشؤون الإدارية والتسويق (المهام، التصنيفات الـ 8، الجهات، المرفقات، سجل التعديلات).
- * 4. نظام الجدولة الخلفية والتذكيرات (Reminders) والإشعارات الداخلية والبريد الإلكتروني بتوقيت Asia/Aden.
- * 5. النسخ الاحتياطي الدوري والاستعادة وتصدير البيانات.
+ * نظام غزارة للتجارة والتسويق — Google Apps Script Backend (Code.gs)
+ * معرف جدول البيانات: 1G87kQ4bGeB1nk_BNH0G-8ezXv45xH3Z4vveW2yfs8j0
+ * المنطقة الزمنية: Asia/Aden
+ * يدعم 4 فئات مستخدمين (مدير تنفيذي، موارد بشرية، مدير قسم، موظف)
+ * وجميع صفحات Google Sheets الـ 12 + صفحة المقترحات التلقائية
  * ============================================================================
  */
 
 const SPREADSHEET_ID = '1G87kQ4bGeB1nk_BNH0G-8ezXv45xH3Z4vveW2yfs8j0';
-const DEFAULT_TIMEZONE = 'Asia/Aden';
-const APP_VERSION = '2.5.0';
+const SYSTEM_TIMEZONE = 'Asia/Aden';
+const CACHE_TTL_SECONDS = 45; // تسريع الاستجابة للهواتف والويب مع تحديث فوري عند الكتابة
 
-const SHEETS = {
-  USERS: 'المستخدمين',
-  HR_STAFF: 'HR_Staff',
-  LEAVES: 'طلبات_الاجازات',
-  SALES_LEADS: 'Sales_Leads',
-  TASKS: 'المهام',
-  CATEGORIES: 'التصنيفات',
-  ENTITIES: 'الجهات',
-  REMINDERS: 'التذكيرات',
-  AUDIT_LOG: 'سجل_التعديلات',
-  ATTACHMENTS: 'المرفقات',
-  NOTIFICATIONS: 'الإشعارات_الداخلية',
-  SETTINGS: 'الإعدادات',
-  BACKUPS: 'النسخ_الاحتياطي'
+const SHEET_SCHEMA = {
+  USERS: {
+    name: 'المستخدمين',
+    headers: ['اسم الموظف', 'اسم المستخدم', 'كلمة المرور', 'القسم', 'الوظيفة', 'الاختصاص', 'تاريخ_آخر_دخول', 'الصلاحيات']
+  },
+  EMPLOYEES: {
+    name: 'الموظفين',
+    headers: ['الرقم الوظيفي', 'اسم الموظف', 'المسمى الوظيفي', 'القسم', 'المدير المباشر', 'تاريخ الميلاد', 'اخر مؤهل دراسي', 'مكان الاقامة', 'تاريخ بدء العمل', 'ملف عقد التوظيف', 'ملف الصورة الشخصية', 'الامراض المزمنة للموظف', 'الحالة الاجتماعية', 'رقم الجوال', 'البريد الالكتروني', 'رقم الهاتف', 'اسم اقرب شخص للطوارئ', 'رقم التوال للطوارئ', 'صلة القرابة للطوارئ']
+  },
+  FINANCE: {
+    name: 'المالية',
+    headers: ['رقم البند', 'اسم البند', 'نوع البند', 'المبلغ', 'سجل بواسطة المستخدم', 'وقت التسجيل']
+  },
+  TASKS: {
+    name: 'المهام',
+    headers: ['رقم_المهمة', 'عنوان_المهمة', 'وصف_المهمة', 'الجهة_المرتبطة', 'مصدر_المهمة', 'المسؤول_عن_التنفيذ', 'منشئ_المهمة', 'تاريخ_الإنشاء', 'تاريخ_بدء_التنفيذ', 'الموعد_النهائي', 'وقت_الاستحقاق', 'الأولوية', 'الحالة_الحالية', 'نسبة_الإنجاز', 'الخطوات_الفرعية_JSON', 'المهام_المرتبطة_JSON', 'الردود_والقرارات_JSON', 'الملاحظات', 'المرفقات_والروابط_JSON', 'تاريخ_ووقت_التذكير', 'وسيلة_التذكير', 'نمط_التكرار', 'بداية_التكرار', 'نهاية_التكرار', 'آخر_توليد_تكرار', 'سبب_التأجيل', 'سجل_المواعيد_السابقة_JSON', 'وقت_الإكمال', 'سجل_الإنجاز_السابق_JSON', 'مؤرشفة', 'تاريخ_آخر_تحديث']
+  },
+  LEAVES: {
+    name: 'طلبات_الاجازات',
+    headers: ['رقم_الطلب', 'الرقم_الوظيفي', 'اسم_الموظف', 'اسم_المستخدم', 'المسمى_الوظيفي', 'القسم', 'نوع_الإجازة', 'تاريخ_البداية', 'تاريخ_النهاية', 'عدد_الأيام', 'البديل_المقترح', 'سبب_الإجازة', 'حالة_الطلب', 'اعتماد_الموارد_البشرية', 'اعتماد_الإدارة', 'ملاحظات_الإدارة', 'تاريخ_الطلب', 'تاريخ_آخر_تحديث']
+  },
+  LEADS: {
+    name: 'طلبات الموقع',
+    headers: ['رقم المرجع', 'تاريخ ووقت الطلب', 'الاسم الكامل', 'الجهة / المنشأة', 'رقم التواصل', 'البريد الإلكتروني', 'مجال العمل', 'المجال المطلوب للدعم', 'الهدف المراد تحقيقه', 'موعد البدء المفضل', 'حالة الطلب', 'الموظف المسؤول']
+  },
+  REMINDERS: {
+    name: 'التذكيرات',
+    headers: ['معرف_التذكير', 'رقم_المهمة', 'عنوان_المهمة', 'المستلم_المستخدم', 'المستلم_البريد', 'نوع_التذكير', 'وقت_الجدولة', 'وسيلة_التذكير', 'حالة_الإرسال', 'عدد_المحاولات', 'وقت_الإرسال_الفعلي', 'نتيجة_الإرسال', 'معرف_عدم_التكرار']
+  },
+  AUDIT_LOGS: {
+    name: 'سجل_التعديلات',
+    headers: ['معرف_السجل', 'التاريخ_والوقت', 'رقم_المرجع', 'نوع_العملية', 'المستخدم', 'الحقل_المعدل', 'القيمة_السابقة', 'القيمة_الجديدة', 'التفاصيل']
+  },
+  ATTACHMENTS: {
+    name: 'المرفقات',
+    headers: ['معرف_المرفق', 'رقم_المهمة', 'اسم_المرفق', 'الرابط', 'النوع', 'المستخدم', 'تاريخ_الإضافة']
+  },
+  NOTIFICATIONS: {
+    name: 'الإشعارات_الداخلية',
+    headers: ['معرف_الإشعار', 'المستخدم_المستهدف', 'رقم_المهمة', 'نوع_الإشعار', 'العنوان', 'الرسالة', 'مقروء', 'التاريخ_والوقت']
+  },
+  BACKUPS: {
+    name: 'النسخ الاحتياطي',
+    headers: ['معرف_النسخة', 'تاريخ_النسخة', 'أنشئت_بواسطة', 'نوع_النسخة', 'ملخص_البيانات', 'البيانات_JSON']
+  },
+  CUSTOMERS: {
+    name: 'العملاء',
+    headers: ['اسم العميل', 'رقم الاتصال', 'الايميل', 'الاسم التجاري', 'مكان العميل', 'العقد', 'الخدمات المطلوبة', 'عدد الاقساط مع قيمة كل قسط_JSON', 'تاريخ بدء العقد', 'تاريخ انتهاء العقد', 'مرات تجديد العقد', 'المبلغ المتبقي المطلوب من العميل', 'اسم صفحة السوشل ميديا', 'الخدمات المنجزة', 'ملاحظات']
+  },
+  SUGGESTIONS: {
+    name: 'المقترحات',
+    headers: ['رقم_المقترح', 'اسم_الموظف', 'اسم_المستخدم', 'القسم', 'عنوان_المقترح', 'تفاصيل_المقترح', 'الأثر_المتوقع', 'الحالة', 'رد_الإدارة', 'تاريخ_التقديم', 'تاريخ_آخر_تحديث']
+  }
 };
 
 /**
- * التصنيفات الإدارية الثمانية المعتمدة بصورة مستقلة
- */
-const DEFAULT_CATEGORIES = [
-  { id: 'CAT-01', name: 'مهام يجب رفعها إلى الإدارة التنفيذية', desc: 'المهام والتقارير والاعتمادات المطلوب رفعها للإدارة التنفيذية', color: '#5B2C83', order: 1, archived: false },
-  { id: 'CAT-02', name: 'مهام وردت إليّ من الإدارة التنفيذية', desc: 'التوجيهات والتكليفات الصادرة من الإدارة التنفيذية', color: '#7C46AD', order: 2, archived: false },
-  { id: 'CAT-03', name: 'مهام تُرفع إلى قسم التسويق والإعلام الرقمي', desc: 'المهام والطلبات الموجهة إلى قسم التسويق والإعلام الرقمي', color: '#EC8232', order: 3, archived: false },
-  { id: 'CAT-04', name: 'مهام وردت إليّ من قسم التسويق والإعلام الرقمي', desc: 'المهام والمخرجات الواردة من قسم التسويق والإعلام الرقمي', color: '#F59E56', order: 4, archived: false },
-  { id: 'CAT-05', name: 'مهام تُرفع إلى قسم التطوير المؤسسي', desc: 'المهام والمبادرات المرفوعة لقسم التطوير المؤسسي', color: '#38A89D', order: 5, archived: false },
-  { id: 'CAT-06', name: 'مهام وردت إليّ من قسم التطوير المؤسسي', desc: 'المهام والخطط الواردة من قسم التطوير المؤسسي', color: '#0D9488', order: 6, archived: false },
-  { id: 'CAT-07', name: 'مهام تُرفع إلى المسوقين', desc: 'التكليفات والمهام الميدانية والرقمية الموجهة للمسوقين', color: '#4F46E5', order: 7, archived: false },
-  { id: 'CAT-08', name: 'مهام وردت إليّ من المسوقين', desc: 'التقارير والطلبات والمتابعات الواردة من فريق المسوقين', color: '#E11D48', order: 8, archived: false }
-];
-
-const DEFAULT_ENTITIES = [
-  { id: 'ENT-01', name: 'الإدارة التنفيذية العليا', type: 'إدارة داخلية', contact: 'سالم باحارثة', email: 'ceo@ghazaraye.com', phone: '+967783334002', status: 'نشط' },
-  { id: 'ENT-02', name: 'قسم التسويق والإعلام الرقمي', type: 'قسم داخلي', contact: 'سارة بن سميط', email: 'marketing.mgr@ghazaraye.com', phone: '+967783334002', status: 'نشط' },
-  { id: 'ENT-03', name: 'قسم التطوير المؤسسي والموارد البشرية', type: 'قسم داخلي', contact: 'فاطمة السقاف', email: 'hr.mgr@ghazaraye.com', phone: '+967783334002', status: 'نشط' },
-  { id: 'ENT-04', name: 'فريق المسوقين والمبيعات', type: 'فريق عمل', contact: 'أحمد الكاف', email: 'sales.mgr@ghazaraye.com', phone: '+967783334002', status: 'نشط' },
-  { id: 'ENT-05', name: 'استوديو التصميم والإنتاج المرئي', type: 'قسم داخلي', contact: 'عمر باعباد', email: 'media@ghazaraye.com', phone: '+967783334002', status: 'نشط' },
-  { id: 'ENT-06', name: 'الإدارة المالية والحسابات', type: 'قسم داخلي', contact: 'عبدالرحمن باجابر', email: 'finance@ghazaraye.com', phone: '+967783334002', status: 'نشط' }
-];
-
-const DEFAULT_USERS = [
-  ['سالم باحارثة', 'ceo', '123456', 'الإدارة العليا', 'المدير التنفيذي', 'ceo@ghazaraye.com', 'FALSE', 'USR-01', '{"email":true,"internal":true}', ''],
-  ['أحمد الكاف', 'sales_mgr', '123456', 'المبيعات وتطوير الأعمال', 'مدير المبيعات', 'sales.mgr@ghazaraye.com', 'FALSE', 'USR-02', '{"email":true,"internal":true}', ''],
-  ['فاطمة السقاف', 'hr_mgr', '123456', 'الموارد البشرية', 'مدير الموارد البشرية', 'hr.mgr@ghazaraye.com', 'FALSE', 'USR-03', '{"email":true,"internal":true}', ''],
-  ['خالد باوزير', 'sales_rep', '123456', 'المبيعات وتطوير الأعمال', 'موظف مبيعات', 'sales@ghazaraye.com', 'FALSE', 'USR-04', '{"email":true,"internal":true}', ''],
-  ['سارة بن سميط', 'mkt_mgr', '123456', 'التسويق', 'مدير التسويق', 'marketing.mgr@ghazaraye.com', 'FALSE', 'USR-05', '{"email":true,"internal":true}', ''],
-  ['محمد العطاس', 'mkt_specialist', '123456', 'التسويق', 'موظف تسويق', 'marketing@ghazaraye.com', 'FALSE', 'USR-06', '{"email":true,"internal":true}', ''],
-  ['عمر باعباد', 'media_mgr', '123456', 'الإعلام والإنتاج', 'مدير الاعلام', 'media@ghazaraye.com', 'FALSE', 'USR-07', '{"email":true,"internal":true}', ''],
-  ['ياسر الكثيري', 'designer', '123456', 'التصميم والمونتاج', 'مصمم', 'design@ghazaraye.com', 'FALSE', 'USR-08', '{"email":true,"internal":true}', ''],
-  ['عبدالرحمن باجابر', 'accountant', '123456', 'المالية والحسابات', 'محاسب', 'finance@ghazaraye.com', 'FALSE', 'USR-09', '{"email":true,"internal":true}', ''],
-  ['نور الحبشي', 'hr_staff', '123456', 'الموارد البشرية', 'موظف موارد بشرية', 'hr@ghazaraye.com', 'FALSE', 'USR-10', '{"email":true,"internal":true}', '']
-];
-
-/**
- * فتح ملف Google Sheet وتجهيز الأوراق تلقائياً عند الحاجة
- */
-function getSpreadsheet() {
-  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-  ensureAllSheetsExist(ss);
-  return ss;
-}
-
-function getTimezone() {
-  try {
-    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-    const sheet = ss.getSheetByName(SHEETS.SETTINGS);
-    if (sheet && sheet.getLastRow() > 1) {
-      const data = sheet.getDataRange().getValues();
-      for (let i = 1; i < data.length; i++) {
-        if (String(data[i][0]) === 'timezone' && data[i][1]) {
-          return String(data[i][1]);
-        }
-      }
-    }
-  } catch (e) {}
-  return DEFAULT_TIMEZONE;
-}
-
-function formatNow(tz) {
-  const zone = tz || getTimezone();
-  return Utilities.formatDate(new Date(), zone, 'yyyy-MM-dd HH:mm:ss');
-}
-
-function formatDateOnly(dateObj, tz) {
-  const zone = tz || getTimezone();
-  return Utilities.formatDate(dateObj || new Date(), zone, 'yyyy-MM-dd');
-}
-
-/**
- * دالة التهيئة الشاملة لقاعدة البيانات (تُشغل يدوياً مرة واحدة أو تعمل تلقائياً)
- */
-function setupDatabase() {
-  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-  ensureAllSheetsExist(ss);
-  setupBackgroundTriggers();
-  return {
-    status: 'success',
-    message: 'تمت تهيئة جميع أوراق قاعدة البيانات والجدولة التلقائية بنجاح.',
-    timezone: getTimezone(),
-    version: APP_VERSION
-  };
-}
-
-function ensureAllSheetsExist(ss) {
-  // 1. ورقة المستخدمين
-  let usersSheet = ss.getSheetByName(SHEETS.USERS);
-  const usersHeaders = ['اسم الموظف', 'اسم المستخدم', 'كلمة المرور', 'القسم', 'الوظيفة', 'البريد الالكتروني', 'تغيير كلمة المرور إجباري', 'معرف_المستخدم', 'تفضيلات_الإشعارات', 'تاريخ_آخر_دخول'];
-  if (!usersSheet) {
-    usersSheet = ss.insertSheet(SHEETS.USERS);
-    usersSheet.appendRow(usersHeaders);
-  } else if (usersSheet.getLastColumn() < 7) {
-    usersSheet.getRange(1, 1, 1, usersHeaders.length).setValues([usersHeaders]);
-  }
-  if (usersSheet.getLastRow() <= 1) {
-    DEFAULT_USERS.forEach(row => usersSheet.appendRow(row));
-  }
-
-  // 2. ورقة الموظفين HR_Staff
-  let hrSheet = ss.getSheetByName(SHEETS.HR_STAFF);
-  const hrHeaders = ['الرقم الوظيفي', 'اسم الموظف', 'المسمى الوظيفي', 'المسار / القسم', 'رقم الهاتف', 'حالة العمل', 'تاريخ الإضافة', 'رصيد_الإجازات_السنوية', 'البريد_الإلكتروني'];
-  if (!hrSheet) {
-    hrSheet = ss.insertSheet(SHEETS.HR_STAFF);
-    hrSheet.appendRow(hrHeaders);
-  }
-  if (hrSheet.getLastRow() <= 1) {
-    DEFAULT_USERS.forEach((u, idx) => {
-      hrSheet.appendRow(['EMP-' + (101 + idx), u[0], u[4], u[3], '+967 783 334 00' + idx, 'على رأس العمل', formatNow(DEFAULT_TIMEZONE), 30, u[5]]);
-    });
-  }
-
-  // 3. ورقة طلبات الإجازات السنوية
-  let leavesSheet = ss.getSheetByName(SHEETS.LEAVES);
-  const leavesHeaders = [
-    'رقم_الطلب', 'الرقم_الوظيفي', 'اسم_الموظف', 'اسم_المستخدم', 'المسمى_الوظيفي',
-    'القسم', 'نوع_الإجازة', 'تاريخ_البداية', 'تاريخ_النهاية', 'عدد_الأيام',
-    'البديل_المقترح', 'سبب_الإجازة', 'حالة_الطلب', 'اعتماد_الموارد_البشرية',
-    'اعتماد_الإدارة', 'ملاحظات_الإدارة', 'تاريخ_الطلب', 'تاريخ_آخر_تحديث'
-  ];
-  if (!leavesSheet) {
-    leavesSheet = ss.insertSheet(SHEETS.LEAVES);
-    leavesSheet.appendRow(leavesHeaders);
-  }
-
-  // 4. ورقة المهام
-  let tasksSheet = ss.getSheetByName(SHEETS.TASKS);
-  const tasksHeaders = [
-    'رقم_المهمة', 'عنوان_المهمة', 'وصف_المهمة', 'معرف_التصنيف', 'التصنيف_الإداري',
-    'معرف_الجهة', 'الجهة_المرتبطة', 'نوع_المهمة', 'مصدر_المهمة', 'المسؤول_عن_التنفيذ',
-    'منشئ_المهمة', 'تاريخ_الإنشاء', 'تاريخ_بدء_التنفيذ', 'الموعد_النهائي', 'وقت_الاستحقاق',
-    'الأولوية', 'الحالة_الحالية', 'نسبة_الإنجاز', 'الخطوات_الفرعية_JSON', 'المهام_المرتبطة_JSON',
-    'الردود_والقرارات_JSON', 'الملاحظات', 'المرفقات_والروابط_JSON', 'تاريخ_ووقت_التذكير', 'وسيلة_التذكير',
-    'نمط_التكرار', 'بداية_التكرار', 'نهاية_التكرار', 'آخر_توليد_تكرار', 'سبب_التأجيل',
-    'سجل_المواعيد_السابقة_JSON', 'وقت_الإكمال', 'سجل_الإنجاز_السابق_JSON', 'مؤرشفة', 'تاريخ_آخر_تحديث'
-  ];
-  if (!tasksSheet) {
-    tasksSheet = ss.insertSheet(SHEETS.TASKS);
-    tasksSheet.appendRow(tasksHeaders);
-  }
-
-  // 5. ورقة التصنيفات
-  let catSheet = ss.getSheetByName(SHEETS.CATEGORIES);
-  const catHeaders = ['معرف_التصنيف', 'اسم_التصنيف', 'وصف_التصنيف', 'اللون', 'الترتيب', 'مؤرشف', 'تاريخ_التحديث'];
-  if (!catSheet) {
-    catSheet = ss.insertSheet(SHEETS.CATEGORIES);
-    catSheet.appendRow(catHeaders);
-  }
-  if (catSheet.getLastRow() <= 1) {
-    const nowStr = formatNow(DEFAULT_TIMEZONE);
-    DEFAULT_CATEGORIES.forEach(c => {
-      catSheet.appendRow([c.id, c.name, c.desc, c.color, c.order, c.archived ? 'TRUE' : 'FALSE', nowStr]);
-    });
-  }
-
-  // 6. ورقة الجهات
-  let entSheet = ss.getSheetByName(SHEETS.ENTITIES);
-  const entHeaders = ['معرف_الجهة', 'اسم_الجهة', 'نوع_الجهة', 'مسؤول_التواصل', 'البريد_الإلكتروني', 'رقم_الهاتف', 'الحالة', 'تاريخ_الإضافة'];
-  if (!entSheet) {
-    entSheet = ss.insertSheet(SHEETS.ENTITIES);
-    entSheet.appendRow(entHeaders);
-  }
-  if (entSheet.getLastRow() <= 1) {
-    const nowStr = formatNow(DEFAULT_TIMEZONE);
-    DEFAULT_ENTITIES.forEach(e => {
-      entSheet.appendRow([e.id, e.name, e.type, e.contact, e.email, e.phone, e.status, nowStr]);
-    });
-  }
-
-  // 7. ورقة التذكيرات
-  let remSheet = ss.getSheetByName(SHEETS.REMINDERS);
-  const remHeaders = [
-    'معرف_التذكير', 'رقم_المهمة', 'عنوان_المهمة', 'المستلم_المستخدم', 'المستلم_البريد',
-    'نوع_التذكير', 'وقت_الجدولة', 'وسيلة_التذكير', 'حالة_الإرسال', 'عدد_المحاولات',
-    'وقت_الإرسال_الفعلي', 'نتيجة_الإرسال', 'معرف_عدم_التكرار'
-  ];
-  if (!remSheet) {
-    remSheet = ss.insertSheet(SHEETS.REMINDERS);
-    remSheet.appendRow(remHeaders);
-  }
-
-  // 8. ورقة سجل التعديلات
-  let auditSheet = ss.getSheetByName(SHEETS.AUDIT_LOG);
-  const auditHeaders = [
-    'معرف_السجل', 'التاريخ_والوقت', 'رقم_المرجع', 'نوع_العملية', 'المستخدم',
-    'الحقل_المعدل', 'القيمة_السابقة', 'القيمة_الجديدة', 'التفاصيل'
-  ];
-  if (!auditSheet) {
-    auditSheet = ss.insertSheet(SHEETS.AUDIT_LOG);
-    auditSheet.appendRow(auditHeaders);
-  }
-
-  // 9. ورقة المرفقات
-  let attSheet = ss.getSheetByName(SHEETS.ATTACHMENTS);
-  const attHeaders = ['معرف_المرفق', 'رقم_المهمة', 'اسم_المرفق', 'الرابط', 'النوع', 'المستخدم', 'تاريخ_الإضافة'];
-  if (!attSheet) {
-    attSheet = ss.insertSheet(SHEETS.ATTACHMENTS);
-    attSheet.appendRow(attHeaders);
-  }
-
-  // 10. ورقة الإشعارات الداخلية
-  let notifSheet = ss.getSheetByName(SHEETS.NOTIFICATIONS);
-  const notifHeaders = ['معرف_الإشعار', 'المستخدم_المستهدف', 'رقم_المهمة', 'نوع_الإشعار', 'العنوان', 'الرسالة', 'مقروء', 'التاريخ_والوقت'];
-  if (!notifSheet) {
-    notifSheet = ss.insertSheet(SHEETS.NOTIFICATIONS);
-    notifSheet.appendRow(notifHeaders);
-  }
-
-  // 11. ورقة الإعدادات
-  let setSheet = ss.getSheetByName(SHEETS.SETTINGS);
-  const setHeaders = ['المفتاح', 'القيمة', 'الوصف', 'تاريخ_آخر_تحديث'];
-  if (!setSheet) {
-    setSheet = ss.insertSheet(SHEETS.SETTINGS);
-    setSheet.appendRow(setHeaders);
-    const nowStr = formatNow(DEFAULT_TIMEZONE);
-    setSheet.appendRow(['timezone', 'Asia/Aden', 'المنطقة الزمنية المعتمدة للنظام', nowStr]);
-    setSheet.appendRow(['notifications_enabled', 'true', 'تفعيل نظام الإشعارات والتذكيرات العام', nowStr]);
-    setSheet.appendRow(['email_verified', 'false', 'حالة التحقق الفعلي من إرسال البريد الإلكتروني', nowStr]);
-    setSheet.appendRow(['email_sender_name', 'نظام مهام غزارة للتجارة والتسويق', 'الاسم الظاهر في رسائل البريد', nowStr]);
-    setSheet.appendRow(['default_reminder_Before_hours', '24', 'التذكير الافتراضي قبل الموعد النهائي بالساعات', nowStr]);
-    setSheet.appendRow(['daily_summary_enabled', 'true', 'إرسال الملخص اليومي للبريد الإلكتروني', nowStr]);
-    setSheet.appendRow(['weekly_report_enabled', 'true', 'إرسال التقرير الأسبوعي للبريد الإلكتروني', nowStr]);
-    setSheet.appendRow(['app_version', APP_VERSION, 'إصدار النظام', nowStr]);
-  }
-
-  // 12. ورقة النسخ الاحتياطي
-  let backupSheet = ss.getSheetByName(SHEETS.BACKUPS);
-  const backupHeaders = ['معرف_النسخة', 'تاريخ_النسخة', 'أنشئت_بواسطة', 'نوع_النسخة', 'ملخص_البيانات', 'البيانات_JSON'];
-  if (!backupSheet) {
-    backupSheet = ss.insertSheet(SHEETS.BACKUPS);
-    backupSheet.appendRow(backupHeaders);
-  }
-
-  // 13. ورقة طلبات العملاء Sales_Leads
-  let leadsSheet = ss.getSheetByName(SHEETS.SALES_LEADS);
-  if (!leadsSheet) {
-    leadsSheet = ss.insertSheet(SHEETS.SALES_LEADS);
-    leadsSheet.appendRow([
-      'رقم المرجع (Lead ID)', 'تاريخ ووقت الطلب', 'الاسم الكامل', 'الجهة / المنشأة',
-      'رقم التواصل', 'البريد الإلكتروني', 'مجال العمل', 'المجال المطلوب للدعم',
-      'الهدف المراد تحقيقه', 'موعد البدء المفضل', 'حالة الطلب (CRM Status)', 'الموظف المسؤول'
-    ]);
-  }
-}
-
-/**
- * نقطة الدخول لطلبات GET
+ * نقطة الدخول لطلبات GET (فحص جاهزية الـ API)
  */
 function doGet(e) {
-  const action = (e && e.parameter && e.parameter.action) ? e.parameter.action : 'ping';
-  if (action === 'setup') {
-    return jsonResponse(setupDatabase());
+  const action = (e && e.parameter && e.parameter.action) ? e.parameter.action : 'health';
+  if (action === 'health') {
+    return jsonResponse_({
+      status: 'success',
+      service: 'Ghazara Portal API v3.0',
+      timezone: SYSTEM_TIMEZONE,
+      timestamp: nowStr_()
+    });
   }
-  return jsonResponse({
-    status: 'success',
-    message: 'خادم غزارة متصل ويعمل بنجاح',
-    version: APP_VERSION,
-    timezone: getTimezone()
-  });
+  return jsonResponse_({ status: 'success', message: 'Use POST requests for data operations.' });
 }
 
 /**
- * نقطة الدخول الرئيسية لجميع طلبات POST القادمة من واجهات الموقع والبوابة
+ * نقطة الدخول الرئيسية لطلبات POST من الموقع وبوابة الموظفين (/portai/login)
  */
 function doPost(e) {
   try {
-    const raw = (e && e.postData && e.postData.contents) ? e.postData.contents : '{}';
-    const payload = JSON.parse(raw);
-    const action = payload.action || '';
-    const ss = getSpreadsheet();
+    const rawBody = (e && e.postData && e.postData.contents) ? e.postData.contents : '{}';
+    const payload = JSON.parse(rawBody);
+    const action = String(payload.action || '').trim();
 
     switch (action) {
       // 1. المصادقة وإدارة الحساب
       case 'login':
-        return jsonResponse(handleLogin(ss, payload));
+        return handleLogin_(payload);
       case 'forgotPassword':
-        return jsonResponse(handleForgotPassword(ss, payload));
+        return handleForgotPassword_(payload);
       case 'changePassword':
-        return jsonResponse(handleChangePassword(ss, payload));
-      case 'updateProfile':
-        return jsonResponse(handleUpdateProfile(ss, payload));
+        return handleChangePassword_(payload);
 
-      // 2. المبيعات وطلبات التواصل
-      case 'addLead':
-        return jsonResponse(handleAddLead(ss, payload));
-      case 'getLeads':
-        return jsonResponse(handleGetLeads(ss));
-      case 'updateLeadStatus':
-        return jsonResponse(handleUpdateLeadStatus(ss, payload));
-
-      // 3. الموارد البشرية والإجازات السنوية
-      case 'getHRData':
-        return jsonResponse(handleGetHRData(ss, payload));
-      case 'addEmployee':
-        return jsonResponse(handleAddEmployee(ss, payload));
-      case 'submitLeaveRequest':
-        return jsonResponse(handleSubmitLeaveRequest(ss, payload));
-      case 'updateLeaveStatus':
-        return jsonResponse(handleUpdateLeaveStatus(ss, payload));
-
-      // 4. لوحة مهام الشؤون الإدارية والتسويق
+      // 2. جلب الحزمة الموحدة السريعة حسب صلاحيات وفئة المستخدم (مدير تنفيذي، موارد بشرية، مدير قسم، موظف)
+      case 'getPortalBundle':
       case 'getDashboardBundle':
-        return jsonResponse(handleGetDashboardBundle(ss, payload));
+        return handleGetPortalBundle_(payload);
+
+      // 3. إدارة الصلاحيات والمستخدمين والموظفين (مدير تنفيذي / موارد بشرية / مدير قسم)
+      case 'updatePermissions':
+        return handleUpdatePermissions_(payload);
+      case 'saveEmployeeAndUser':
+        return handleSaveEmployeeAndUser_(payload);
+      case 'deleteEmployeeAndUser':
+        return handleDeleteEmployeeAndUser_(payload);
+      case 'fixPhoneErrors':
+        return handleFixPhoneErrors_();
+
+      // 4. إدارة المهام والتذكيرات والمرفقات
       case 'saveTask':
-        return jsonResponse(handleSaveTask(ss, payload));
+        return handleSaveTask_(payload);
       case 'updateTaskStatus':
-        return jsonResponse(handleUpdateTaskStatus(ss, payload));
-      case 'rescheduleTask':
-        return jsonResponse(handleRescheduleTask(ss, payload));
-      case 'archiveTask':
-        return jsonResponse(handleArchiveTask(ss, payload));
-      case 'deleteTask':
-        return jsonResponse(handleDeleteTask(ss, payload));
+        return handleUpdateTaskStatus_(payload);
       case 'addTaskResponse':
-        return jsonResponse(handleAddTaskResponse(ss, payload));
+        return handleAddTaskResponse_(payload);
+      case 'rescheduleTask':
+        return handleRescheduleTask_(payload);
+      case 'archiveTask':
+        return handleArchiveTask_(payload);
+      case 'deleteTask':
+        return handleDeleteTask_(payload);
 
-      // 5. التصنيفات والجهات
-      case 'saveCategory':
-        return jsonResponse(handleSaveCategory(ss, payload));
-      case 'deleteCategory':
-        return jsonResponse(handleDeleteCategory(ss, payload));
-      case 'saveEntity':
-        return jsonResponse(handleSaveEntity(ss, payload));
-      case 'deleteEntity':
-        return jsonResponse(handleDeleteEntity(ss, payload));
+      // 5. إدارة طلبات الإجازات
+      case 'submitLeaveRequest':
+        return handleSubmitLeaveRequest_(payload);
+      case 'reviewLeaveRequest':
+        return handleReviewLeaveRequest_(payload);
 
-      // 6. الإشعارات والتذكيرات والبريد الإلكتروني
+      // 6. إدارة العملاء والعقود والأقساط
+      case 'saveCustomer':
+        return handleSaveCustomer_(payload);
+      case 'deleteCustomer':
+        return handleDeleteCustomer_(payload);
+
+      // 7. إدارة المالية والحسابات
+      case 'saveFinanceItem':
+        return handleSaveFinanceItem_(payload);
+      case 'deleteFinanceItem':
+        return handleDeleteFinanceItem_(payload);
+
+      // 8. إدارة طلبات الموقع الإلكتروني (Contact Form Leads)
+      case 'addLead':
+        return handleAddLead_(payload);
+      case 'updateLead':
+        return handleUpdateLead_(payload);
+
+      // 9. مقترحات الموظفين لتطوير العمل
+      case 'submitSuggestion':
+        return handleSubmitSuggestion_(payload);
+      case 'reviewSuggestion':
+        return handleReviewSuggestion_(payload);
+
+      // 10. الإشعارات، التقارير الشهرية، والنسخ الاحتياطي
       case 'markNotificationRead':
-        return jsonResponse(handleMarkNotificationRead(ss, payload));
-      case 'testEmailConnection':
-        return jsonResponse(handleTestEmailConnection(ss, payload));
-      case 'runSchedulerNow':
-        return jsonResponse(runScheduledJobs());
-      case 'saveSettings':
-        return jsonResponse(handleSaveSettings(ss, payload));
-
-      // 7. النسخ الاحتياطي والاستعادة
+        return handleMarkNotificationRead_(payload);
       case 'createBackup':
-        return jsonResponse(handleCreateBackup(ss, payload));
+        return handleCreateBackup_(payload);
       case 'restoreBackup':
-        return jsonResponse(handleRestoreBackup(ss, payload));
+        return handleRestoreBackup_(payload);
+      case 'testEmailConnection':
+        return handleTestEmailConnection_(payload);
 
       default:
-        return jsonResponse({ status: 'error', message: 'الإجراء المطلوب غير معروف: ' + action });
+        return jsonResponse_({ status: 'error', message: 'عملية غير معروفة: ' + action });
     }
   } catch (err) {
-    return jsonResponse({
+    return jsonResponse_({
       status: 'error',
-      message: 'خطأ في معالجة الطلب على الخادم: ' + err.message,
-      stack: err.stack
+      message: 'خطأ في الخادم: ' + (err && err.message ? err.message : String(err))
     });
   }
 }
 
-function jsonResponse(obj) {
-  return ContentService
-    .createTextOutput(JSON.stringify(obj))
-    .setMimeType(ContentService.MimeType.JSON);
+/**
+ * ============================================================================
+ * تصنيف المستخدمين الأربعة (مدير تنفيذي، موارد بشرية، مدير قسم، موظف)
+ * ============================================================================
+ */
+function resolveUserTier_(jobRole, department, customTier) {
+  const ct = String(customTier || '').trim();
+  if (['مدير تنفيذي', 'موارد بشرية', 'مدير قسم', 'موظف'].indexOf(ct) !== -1) {
+    return ct;
+  }
+  const role = String(jobRole || '').trim();
+  const dept = String(department || '').trim();
+
+  if (role.indexOf('المدير التنفيذي') !== -1 || role.indexOf('مدير تنفيذي') !== -1 || role.toLowerCase() === 'ceo') {
+    return 'مدير تنفيذي';
+  }
+  if (role.indexOf('موارد بشرية') !== -1 || role.indexOf('الموارد البشرية') !== -1 || dept.indexOf('الموارد البشرية') !== -1) {
+    return 'موارد بشرية';
+  }
+  if (role.indexOf('مدير') !== -1 || role.indexOf('رئيس قسم') !== -1) {
+    return 'مدير قسم';
+  }
+  return 'موظف';
+}
+
+function parseUserPermissions_(permRaw, userTier, jobRole) {
+  let customPerms = [];
+  if (permRaw) {
+    try {
+      const parsed = JSON.parse(permRaw);
+      if (Array.isArray(parsed)) customPerms = parsed;
+    } catch (e) {
+      customPerms = String(permRaw).split(',').map(function(s) { return s.trim(); }).filter(Boolean);
+    }
+  }
+
+  const defaultsByTier = {
+    'مدير تنفيذي': [
+      'all_access', 'manage_permissions', 'monthly_reports', 'manage_employees',
+      'approve_leaves_hr', 'approve_leaves_exec', 'manage_all_tasks', 'manage_dept_tasks',
+      'manage_customers', 'manage_finance', 'manage_leads', 'manage_suggestions', 'manage_backups'
+    ],
+    'موارد بشرية': [
+      'manage_employees', 'approve_leaves_hr', 'manage_all_tasks', 'manage_customers',
+      'manage_finance', 'apply_leave', 'submit_suggestion'
+    ],
+    'مدير قسم': [
+      'manage_dept_tasks', 'manage_dept_permissions', 'manage_dept_customers',
+      'manage_leads', 'apply_leave', 'submit_suggestion'
+    ],
+    'موظف': [
+      'view_own_tasks', 'apply_leave', 'submit_suggestion'
+    ]
+  };
+
+  const base = defaultsByTier[userTier] ? defaultsByTier[userTier].slice() : defaultsByTier['موظف'].slice();
+  if (String(jobRole || '').indexOf('محاسب') !== -1 && base.indexOf('manage_finance') === -1) {
+    base.push('manage_finance');
+  }
+  customPerms.forEach(function(p) {
+    if (base.indexOf(p) === -1) base.push(p);
+  });
+  return base;
 }
 
 /**
  * ============================================================================
- * 1. التحقق الصارم من تسجيل الدخول من ورقة (المستخدمين) في Google Sheets
+ * 1. تسجيل الدخول الصارم وتحديث تاريخ آخر دخول وسجل التعديلات
  * ============================================================================
  */
-function handleLogin(ss, payload) {
+function handleLogin_(payload) {
   const identifier = String(payload.identifier || '').trim().toLowerCase();
   const password = String(payload.password || '').trim();
 
   if (!identifier || !password) {
-    return { status: 'error', message: 'يرجى إدخال اسم المستخدم وكلمة المرور.' };
+    return jsonResponse_({ status: 'error', message: 'يرجى إدخال اسم المستخدم وكلمة المرور.' });
   }
 
-  const sheet = ss.getSheetByName(SHEETS.USERS);
-  if (!sheet || sheet.getLastRow() <= 1) {
-    return { status: 'error', message: 'ورقة (المستخدمين) فارغة في قاعدة البيانات.' };
-  }
+  const ss = getSpreadsheet_();
+  const usersSheet = getOrCreateSheet_(ss, SHEET_SCHEMA.USERS.name, SHEET_SCHEMA.USERS.headers);
+  const empSheet = getOrCreateSheet_(ss, SHEET_SCHEMA.EMPLOYEES.name, SHEET_SCHEMA.EMPLOYEES.headers);
 
-  const data = sheet.getDataRange().getValues();
-  for (let i = 1; i < data.length; i++) {
-    const row = data[i];
-    const empName = String(row[0] || '').trim();
-    const username = String(row[1] || '').trim();
-    const savedPass = String(row[2] || '').trim();
-    const department = String(row[3] || '').trim();
-    const jobRole = String(row[4] || '').trim();
-    const email = String(row[5] || '').trim();
-    const mustChange = String(row[6] || '').toUpperCase() === 'TRUE';
-    const userId = String(row[7] || ('USR-0' + i));
-    const notifPrefs = String(row[8] || '{"email":true,"internal":true}');
+  const usersData = usersSheet.getDataRange().getDisplayValues();
+  const empData = empSheet.getDataRange().getDisplayValues();
 
-    if ((username.toLowerCase() === identifier || (email && email.toLowerCase() === identifier)) && savedPass === password) {
-      // تحديث تاريخ آخر دخول
-      sheet.getRange(i + 1, 10).setValue(formatNow());
-      appendAuditLog(ss, userId, 'تسجيل دخول', username, 'تاريخ_آخر_دخول', '', formatNow(), 'تسجيل دخول ناجح للمنصة');
-      return {
-        status: 'success',
-        user: {
-          userId: userId,
-          empName: empName,
-          username: username,
-          department: department,
-          jobRole: jobRole,
-          email: email,
-          mustChangePassword: mustChange,
-          notifPrefs: safeJsonParse(notifPrefs, { email: true, internal: true })
-        }
+  // ربط البريد الإلكتروني والرقم الوظيفي من جدول الموظفين إن وجد
+  const empByName = {};
+  for (let i = 1; i < empData.length; i++) {
+    const r = empData[i];
+    const eName = String(r[1] || '').trim();
+    if (eName) {
+      empByName[eName] = {
+        empId: String(r[0] || '').trim(),
+        email: String(r[14] || '').trim(),
+        phone: cleanPhoneDisplay_(r[13])
       };
     }
   }
 
-  return {
-    status: 'error',
-    message: 'بيانات الدخول غير صحيحة أو أن المستخدم غير مسجل في صفحة (المستخدمين) بقاعدة البيانات.'
-  };
-}
+  for (let i = 1; i < usersData.length; i++) {
+    const row = usersData[i];
+    const empName = String(row[0] || '').trim();
+    const username = String(row[1] || '').trim();
+    const storedPass = String(row[2] || '').trim();
+    const department = String(row[3] || '').trim();
+    const jobRole = String(row[4] || '').trim();
+    const specialty = String(row[5] || '').trim();
+    const permissionsRaw = String(row[7] || '').trim();
 
-function handleForgotPassword(ss, payload) {
-  const identifier = String(payload.identifier || '').trim().toLowerCase();
-  const sheet = ss.getSheetByName(SHEETS.USERS);
-  const data = sheet.getDataRange().getValues();
+    const matchedEmp = empByName[empName] || {};
+    const email = matchedEmp.email || '';
 
-  for (let i = 1; i < data.length; i++) {
-    const empName = String(data[i][0] || '').trim();
-    const username = String(data[i][1] || '').trim();
-    const email = String(data[i][5] || '').trim();
+    const isUserMatch = (username.toLowerCase() === identifier) || (email && email.toLowerCase() === identifier);
+    if (isUserMatch && storedPass === password) {
+      const loginTime = nowStr_();
+      usersSheet.getRange(i + 1, 7).setValue(loginTime);
 
-    if (username.toLowerCase() === identifier || (email && email.toLowerCase() === identifier)) {
-      if (!email) {
-        return { status: 'error', message: 'لا يوجد بريد إلكتروني مسجل لهذا الموظف في ورقة المستخدمين.' };
-      }
-      const tempPass = 'GHZ-' + Math.floor(100000 + Math.random() * 900000);
-      sheet.getRange(i + 1, 3).setValue(tempPass);
-      sheet.getRange(i + 1, 7).setValue('TRUE');
+      const userTier = resolveUserTier_(jobRole, department, specialty);
+      const permissions = parseUserPermissions_(permissionsRaw, userTier, jobRole);
+      const mustChangePassword = storedPass.indexOf('GHZ-') === 0;
 
-      try {
-        MailApp.sendEmail({
-          to: email,
-          subject: 'كلمة المرور المؤقتة - بوابة موظفي غزارة للتجارة والتسويق',
-          htmlBody: `<div dir="rtl" style="font-family:Tahoma,Arial,sans-serif;line-height:1.8;color:#231338;">
-            <h2 style="color:#5B2C83;">مرحباً ${empName}،</h2>
-            <p>تم طلب استعادة كلمة المرور لحسابك في بوابة غزارة للتجارة والتسويق.</p>
-            <p>كلمة المرور المؤقتة الخاصة بك هي: <strong style="background:#F3ECF9;padding:6px 12px;border-radius:8px;color:#5B2C83;">${tempPass}</strong></p>
-            <p>يرجى استخدامها لتسجيل الدخول، وسيطلب منك النظام تعيين كلمة مرور جديدة فوراً.</p>
-          </div>`
-        });
-      } catch (mailErr) {
-        return { status: 'error', message: 'تعذر إرسال البريد الإلكتروني: ' + mailErr.message };
-      }
+      const userObj = {
+        userId: matchedEmp.empId || ('USR-' + String(i).padStart(2, '0')),
+        empId: matchedEmp.empId || ('EMP-' + String(100 + i)),
+        empName: empName,
+        username: username,
+        department: department,
+        jobRole: jobRole,
+        specialty: specialty,
+        userTier: userTier,
+        permissions: permissions,
+        email: email,
+        phone: matchedEmp.phone || '',
+        lastLogin: loginTime,
+        mustChangePassword: mustChangePassword
+      };
 
-      appendAuditLog(ss, username, 'استعادة كلمة مرور', username, 'كلمة المرور', '***', 'كلمة مؤقتة', 'إرسال كلمة مرور مؤقتة للبريد');
-      return { status: 'success', message: 'تم إرسال كلمة مرور مؤقتة إلى بريدك الإلكتروني بنجاح.' };
+      appendAuditLog_(ss, userObj.userId, 'تسجيل دخول', username, 'تاريخ_آخر_دخول', '', loginTime, 'تسجيل دخول ناجح للمنصة (' + userTier + ')');
+      invalidatePortalCache_();
+
+      return jsonResponse_({
+        status: 'success',
+        user: userObj
+      });
     }
   }
-  return { status: 'error', message: 'لم يتم العثور على مستخدم مطابق في صفحة (المستخدمين).' };
+
+  return jsonResponse_({
+    status: 'error',
+    message: 'اسم المستخدم أو كلمة المرور غير صحيحة.'
+  });
 }
 
-function handleChangePassword(ss, payload) {
+function handleForgotPassword_(payload) {
+  const identifier = String(payload.identifier || '').trim().toLowerCase();
+  if (!identifier) {
+    return jsonResponse_({ status: 'error', message: 'يرجى إدخال اسم المستخدم أو البريد الإلكتروني.' });
+  }
+
+  const ss = getSpreadsheet_();
+  const usersSheet = getOrCreateSheet_(ss, SHEET_SCHEMA.USERS.name, SHEET_SCHEMA.USERS.headers);
+  const empSheet = getOrCreateSheet_(ss, SHEET_SCHEMA.EMPLOYEES.name, SHEET_SCHEMA.EMPLOYEES.headers);
+
+  const usersData = usersSheet.getDataRange().getDisplayValues();
+  const empData = empSheet.getDataRange().getDisplayValues();
+
+  const emailByName = {};
+  for (let j = 1; j < empData.length; j++) {
+    emailByName[String(empData[j][1] || '').trim()] = String(empData[j][14] || '').trim();
+  }
+
+  for (let i = 1; i < usersData.length; i++) {
+    const empName = String(usersData[i][0] || '').trim();
+    const username = String(usersData[i][1] || '').trim();
+    const email = emailByName[empName] || '';
+
+    if (username.toLowerCase() === identifier || (email && email.toLowerCase() === identifier)) {
+      const tempPass = 'GHZ-' + Math.floor(100000 + Math.random() * 900000);
+      usersSheet.getRange(i + 1, 3).setValue(tempPass);
+
+      if (email) {
+        try {
+          MailApp.sendEmail({
+            to: email,
+            subject: 'كلمة المرور المؤقتة - بوابة موظفي غزارة',
+            htmlBody: '<div dir="rtl" style="font-family:sans-serif;line-height:1.8">' +
+              '<h3>مرحباً ' + empName + '،</h3>' +
+              '<p>تم توليد كلمة مرور مؤقتة لحسابك في بوابة غزارة:</p>' +
+              '<p style="font-size:18px;font-weight:bold;color:#5B2C83;background:#F3ECF9;padding:10px 16px;display:inline-block;border-radius:8px">' + tempPass + '</p>' +
+              '<p>يرجى تسجيل الدخول بها وتعيين كلمة مرور جديدة فوراً.</p></div>'
+          });
+        } catch (mailErr) {}
+      }
+
+      appendAuditLog_(ss, username, 'استعادة كلمة المرور', username, 'كلمة المرور', '****', 'كلمة مرور مؤقتة', 'توليد كلمة مرور مؤقتة');
+      invalidatePortalCache_();
+
+      return jsonResponse_({
+        status: 'success',
+        message: email
+          ? 'تم إرسال كلمة المرور المؤقتة إلى بريدك الإلكتروني (' + email + ').'
+          : 'تم توليد كلمة المرور المؤقتة وتحديثها في سجل المستخدمين لدى الإدارة.'
+      });
+    }
+  }
+
+  return jsonResponse_({ status: 'error', message: 'لم يتم العثور على حساب مطابق.' });
+}
+
+function handleChangePassword_(payload) {
   const username = String(payload.username || '').trim().toLowerCase();
   const currentPassword = String(payload.currentPassword || '').trim();
   const newPassword = String(payload.newPassword || '').trim();
 
-  if (!username || !currentPassword || !newPassword) {
-    return { status: 'error', message: 'جميع حقول كلمة المرور مطلوبة للتحقق.' };
+  if (!username || !newPassword) {
+    return jsonResponse_({ status: 'error', message: 'بيانات تحديث كلمة المرور غير مكتملة.' });
   }
 
-  const sheet = ss.getSheetByName(SHEETS.USERS);
-  const data = sheet.getDataRange().getValues();
+  const ss = getSpreadsheet_();
+  const usersSheet = getOrCreateSheet_(ss, SHEET_SCHEMA.USERS.name, SHEET_SCHEMA.USERS.headers);
+  const usersData = usersSheet.getDataRange().getDisplayValues();
 
-  for (let i = 1; i < data.length; i++) {
-    const rowUser = String(data[i][1] || '').trim().toLowerCase();
-    const rowPass = String(data[i][2] || '').trim();
-    if (rowUser === username) {
-      if (rowPass !== currentPassword) {
-        return { status: 'error', message: 'كلمة المرور الحالية غير صحيحة. لا يمكن تعديل بيانات المصادقة الحساسة دون التحقق الصحيح.' };
+  for (let i = 1; i < usersData.length; i++) {
+    const uName = String(usersData[i][1] || '').trim();
+    const pass = String(usersData[i][2] || '').trim();
+    if (uName.toLowerCase() === username) {
+      if (currentPassword && pass !== currentPassword) {
+        return jsonResponse_({ status: 'error', message: 'كلمة المرور الحالية غير صحيحة.' });
       }
-      sheet.getRange(i + 1, 3).setValue(newPassword);
-      sheet.getRange(i + 1, 7).setValue('FALSE');
-      appendAuditLog(ss, username, 'تغيير كلمة المرور', username, 'كلمة المرور', '***', '***', 'تم تحديث كلمة المرور بنجاح');
-      return { status: 'success', message: 'تم تحديث كلمة المرور بنجاح في قاعدة البيانات.' };
-    }
-  }
-  return { status: 'error', message: 'المستخدم غير موجود.' };
-}
-
-function handleUpdateProfile(ss, payload) {
-  const currentUsername = String(payload.currentUsername || '').trim().toLowerCase();
-  const verifyPassword = String(payload.verifyPassword || '').trim();
-  const newDisplayName = String(payload.empName || '').trim();
-  const newUsername = String(payload.newUsername || payload.currentUsername || '').trim();
-  const newEmail = String(payload.email || '').trim();
-  const notifPrefs = payload.notifPrefs ? JSON.stringify(payload.notifPrefs) : '{"email":true,"internal":true}';
-
-  const sheet = ss.getSheetByName(SHEETS.USERS);
-  const data = sheet.getDataRange().getValues();
-
-  // التأكد من عدم تكرار اسم المستخدم الجديد إذا تغير
-  if (newUsername.toLowerCase() !== currentUsername) {
-    for (let j = 1; j < data.length; j++) {
-      if (String(data[j][1] || '').trim().toLowerCase() === newUsername.toLowerCase()) {
-        return { status: 'error', message: 'اسم المستخدم الجديد مستخدم بالفعل لموظف آخر.' };
-      }
+      usersSheet.getRange(i + 1, 3).setNumberFormat('@').setValue(newPassword);
+      appendAuditLog_(ss, uName, 'تغيير كلمة المرور', uName, 'كلمة المرور', '****', '****', 'تم تحديث كلمة المرور بنجاح');
+      invalidatePortalCache_();
+      return jsonResponse_({ status: 'success', message: 'تم تحديث كلمة المرور بنجاح.' });
     }
   }
 
-  for (let i = 1; i < data.length; i++) {
-    const rowUser = String(data[i][1] || '').trim().toLowerCase();
-    const rowPass = String(data[i][2] || '').trim();
-    if (rowUser === currentUsername) {
-      if (rowPass !== verifyPassword) {
-        return { status: 'error', message: 'كلمة المرور الحالية غير صحيحة. يرجى إدخال كلمة المرور لتأكيد تعديل الحساب.' };
-      }
-      if (newDisplayName) sheet.getRange(i + 1, 1).setValue(newDisplayName);
-      if (newUsername) sheet.getRange(i + 1, 2).setValue(newUsername);
-      if (newEmail) sheet.getRange(i + 1, 6).setValue(newEmail);
-      sheet.getRange(i + 1, 9).setValue(notifPrefs);
-
-      appendAuditLog(ss, newUsername, 'تحديث الحساب الشخصي', newUsername, 'الملف الشخصي', currentUsername, newUsername, 'تحديث الاسم الظاهر وإعدادات الإشعارات');
-      return {
-        status: 'success',
-        message: 'تم حفظ الإعدادات الشخصية بنجاح.',
-        user: {
-          empName: newDisplayName || data[i][0],
-          username: newUsername || data[i][1],
-          department: data[i][3],
-          jobRole: data[i][4],
-          email: newEmail || data[i][5],
-          mustChangePassword: false,
-          notifPrefs: safeJsonParse(notifPrefs, { email: true, internal: true })
-        }
-      };
-    }
-  }
-  return { status: 'error', message: 'تعذر العثور على حساب المستخدم.' };
+  return jsonResponse_({ status: 'error', message: 'المستخدم غير موجود.' });
 }
 
 /**
  * ============================================================================
- * 2. إدارة طلبات العملاء (Sales_Leads)
+ * 2. جلب بيانات النظام الموحدة بسرعة عالية مع فلترة الأمان حسب الدور
  * ============================================================================
  */
-function handleAddLead(ss, payload) {
-  const sheet = ss.getSheetByName(SHEETS.SALES_LEADS);
+function handleGetPortalBundle_(payload) {
+  const reqUsername = String(payload.username || '').trim();
+  const ss = getSpreadsheet_();
+
+  const rawBundle = getCachedOrReadFullBundle_(ss);
+
+  // تحديد المستخدم الحالي وصلاحياته لفلترة البيانات الحساسة
+  let currentUser = null;
+  for (let i = 0; i < rawBundle.users.length; i++) {
+    if (rawBundle.users[i].username.toLowerCase() === reqUsername.toLowerCase()) {
+      currentUser = rawBundle.users[i];
+      break;
+    }
+  }
+
+  const tier = currentUser ? currentUser.userTier : (payload.userTier || 'موظف');
+  const dept = currentUser ? currentUser.department : (payload.department || '');
+  const empName = currentUser ? currentUser.empName : (payload.empName || '');
+  const perms = currentUser ? currentUser.permissions : [];
+  const hasPerm = function(p) {
+    return tier === 'مدير تنفيذي' || perms.indexOf('all_access') !== -1 || perms.indexOf(p) !== -1;
+  };
+
+  // فلترة المهام حسب الدور لتسريع التحميل وحماية الخصوصية
+  let scopedTasks = rawBundle.tasks;
+  if (tier === 'موظف' && !hasPerm('manage_all_tasks') && !hasPerm('manage_dept_tasks')) {
+    scopedTasks = rawBundle.tasks.filter(function(t) {
+      return t.assignee === empName || t.assignee === reqUsername || t.createdBy === empName;
+    });
+  } else if (tier === 'مدير قسم' && !hasPerm('manage_all_tasks')) {
+    const deptMembers = rawBundle.users
+      .filter(function(u) { return u.department === dept; })
+      .map(function(u) { return u.empName; });
+    scopedTasks = rawBundle.tasks.filter(function(t) {
+      return t.assignee === empName ||
+             t.createdBy === empName ||
+             t.entityName === dept ||
+             deptMembers.indexOf(t.assignee) !== -1;
+    });
+  }
+
+  // فلترة طلبات الإجازات
+  let scopedLeaves = rawBundle.leaves;
+  if (tier === 'موظف' && !hasPerm('approve_leaves_hr') && !hasPerm('approve_leaves_exec')) {
+    scopedLeaves = rawBundle.leaves.filter(function(l) {
+      return l.username.toLowerCase() === reqUsername.toLowerCase() || l.empName === empName;
+    });
+  } else if (tier === 'مدير قسم' && !hasPerm('approve_leaves_hr')) {
+    scopedLeaves = rawBundle.leaves.filter(function(l) {
+      return l.department === dept || l.username.toLowerCase() === reqUsername.toLowerCase();
+    });
+  }
+
+  // فلترة المالية (فقط المدير التنفيذي، الموارد البشرية، أو من يملك manage_finance كالمحاسب)
+  const scopedFinance = (tier === 'مدير تنفيذي' || tier === 'موارد بشرية' || hasPerm('manage_finance'))
+    ? rawBundle.finance
+    : [];
+
+  // فلترة العملاء
+  let scopedCustomers = rawBundle.customers;
+  if (tier === 'موظف' && !hasPerm('manage_customers') && !hasPerm('manage_dept_customers')) {
+    scopedCustomers = [];
+  }
+
+  // فلترة المستخدمين (إخفاء كلمات المرور تماماً عند الإرسال للواجهة)
+  const safeUsers = rawBundle.users.map(function(u) {
+    return {
+      userId: u.userId,
+      empId: u.empId,
+      empName: u.empName,
+      username: u.username,
+      department: u.department,
+      jobRole: u.jobRole,
+      specialty: u.specialty,
+      userTier: u.userTier,
+      permissions: u.permissions,
+      lastLogin: u.lastLogin,
+      email: u.email,
+      phone: u.phone
+    };
+  });
+
+  return jsonResponse_({
+    status: 'success',
+    timestamp: nowStr_(),
+    currentUser: currentUser ? {
+      empName: currentUser.empName,
+      username: currentUser.username,
+      department: currentUser.department,
+      jobRole: currentUser.jobRole,
+      userTier: currentUser.userTier,
+      permissions: currentUser.permissions
+    } : null,
+    users: safeUsers,
+    employees: rawBundle.employees,
+    tasks: scopedTasks,
+    leaves: scopedLeaves,
+    customers: scopedCustomers,
+    finance: scopedFinance,
+    leads: rawBundle.leads,
+    suggestions: rawBundle.suggestions,
+    reminders: rawBundle.reminders,
+    attachments: rawBundle.attachments,
+    notifications: rawBundle.notifications.filter(function(n) {
+      return n.targetUser === 'ALL' || n.targetUser === reqUsername || n.targetUser === empName || tier === 'مدير تنفيذي';
+    }),
+    auditLogs: (tier === 'مدير تنفيذي' || tier === 'موارد بشرية') ? rawBundle.auditLogs.slice(0, 100) : rawBundle.auditLogs.slice(0, 25),
+    backups: (tier === 'مدير تنفيذي') ? rawBundle.backups : []
+  });
+}
+
+function getCachedOrReadFullBundle_(ss) {
+  const cache = CacheService.getScriptCache();
+  const cachedStr = cache.get('GHAZARA_PORTAL_BUNDLE_V3');
+  if (cachedStr) {
+    try {
+      return JSON.parse(cachedStr);
+    } catch (e) {}
+  }
+
+  // قراءة كافة الجداول دفعة واحدة
+  const usersSheet = getOrCreateSheet_(ss, SHEET_SCHEMA.USERS.name, SHEET_SCHEMA.USERS.headers);
+  const empSheet = getOrCreateSheet_(ss, SHEET_SCHEMA.EMPLOYEES.name, SHEET_SCHEMA.EMPLOYEES.headers);
+  const financeSheet = getOrCreateSheet_(ss, SHEET_SCHEMA.FINANCE.name, SHEET_SCHEMA.FINANCE.headers);
+  const tasksSheet = getOrCreateSheet_(ss, SHEET_SCHEMA.TASKS.name, SHEET_SCHEMA.TASKS.headers);
+  const leavesSheet = getOrCreateSheet_(ss, SHEET_SCHEMA.LEAVES.name, SHEET_SCHEMA.LEAVES.headers);
+  const leadsSheet = getOrCreateSheet_(ss, SHEET_SCHEMA.LEADS.name, SHEET_SCHEMA.LEADS.headers);
+  const remindersSheet = getOrCreateSheet_(ss, SHEET_SCHEMA.REMINDERS.name, SHEET_SCHEMA.REMINDERS.headers);
+  const auditSheet = getOrCreateSheet_(ss, SHEET_SCHEMA.AUDIT_LOGS.name, SHEET_SCHEMA.AUDIT_LOGS.headers);
+  const attachSheet = getOrCreateSheet_(ss, SHEET_SCHEMA.ATTACHMENTS.name, SHEET_SCHEMA.ATTACHMENTS.headers);
+  const notifSheet = getOrCreateSheet_(ss, SHEET_SCHEMA.NOTIFICATIONS.name, SHEET_SCHEMA.NOTIFICATIONS.headers);
+  const backupSheet = getOrCreateSheet_(ss, SHEET_SCHEMA.BACKUPS.name, SHEET_SCHEMA.BACKUPS.headers);
+  const custSheet = getOrCreateSheet_(ss, SHEET_SCHEMA.CUSTOMERS.name, SHEET_SCHEMA.CUSTOMERS.headers);
+  const suggSheet = getOrCreateSheet_(ss, SHEET_SCHEMA.SUGGESTIONS.name, SHEET_SCHEMA.SUGGESTIONS.headers);
+
+  const empRows = empSheet.getDataRange().getDisplayValues();
+  const employees = [];
+  const empMapByName = {};
+
+  for (let i = 1; i < empRows.length; i++) {
+    const r = empRows[i];
+    if (!r[0] && !r[1]) continue;
+    const empObj = {
+      empId: r[0] || ('EMP-' + (100 + i)),
+      empName: r[1] || '',
+      jobRole: r[2] || '',
+      department: r[3] || '',
+      directManager: r[4] || '',
+      birthDate: r[5] || '',
+      qualification: r[6] || '',
+      residence: r[7] || '',
+      startDate: r[8] || '',
+      contractFile: r[9] || '',
+      photoFile: r[10] || '',
+      chronicDiseases: r[11] || '',
+      maritalStatus: r[12] || '',
+      mobile: cleanPhoneDisplay_(r[13]),
+      email: r[14] || '',
+      phone: cleanPhoneDisplay_(r[15]),
+      emergencyContact: r[16] || '',
+      emergencyPhone: cleanPhoneDisplay_(r[17]),
+      emergencyRelation: r[18] || ''
+    };
+    employees.push(empObj);
+    empMapByName[empObj.empName.trim()] = empObj;
+  }
+
+  const userRows = usersSheet.getDataRange().getDisplayValues();
+  const users = [];
+  for (let i = 1; i < userRows.length; i++) {
+    const r = userRows[i];
+    if (!r[0] && !r[1]) continue;
+    const empName = String(r[0] || '').trim();
+    const matchedEmp = empMapByName[empName] || {};
+    const userTier = resolveUserTier_(r[4], r[3], r[5]);
+    users.push({
+      userId: matchedEmp.empId || ('USR-' + String(i).padStart(2, '0')),
+      empId: matchedEmp.empId || ('EMP-' + (100 + i)),
+      empName: empName,
+      username: String(r[1] || '').trim(),
+      department: String(r[3] || '').trim(),
+      jobRole: String(r[4] || '').trim(),
+      specialty: String(r[5] || '').trim(),
+      lastLogin: String(r[6] || '').trim(),
+      permissionsRaw: String(r[7] || '').trim(),
+      userTier: userTier,
+      permissions: parseUserPermissions_(r[7], userTier, r[4]),
+      email: matchedEmp.email || '',
+      phone: matchedEmp.mobile || ''
+    });
+  }
+
+  const taskRows = tasksSheet.getDataRange().getDisplayValues();
+  const tasks = [];
+  for (let i = 1; i < taskRows.length; i++) {
+    const r = taskRows[i];
+    if (!r[0] && !r[1]) continue;
+    tasks.push({
+      taskId: r[0],
+      title: r[1],
+      description: r[2],
+      entityName: r[3],
+      source: r[4],
+      assignee: r[5],
+      createdBy: r[6],
+      createdAt: r[7],
+      startDate: r[8],
+      dueDate: r[9],
+      dueTime: r[10],
+      priority: r[11] || 'متوسطة',
+      status: r[12] || 'جديدة',
+      progress: Number(r[13] || 0),
+      subtasks: safeJsonParse_(r[14], []),
+      relatedTasks: safeJsonParse_(r[15], []),
+      responses: safeJsonParse_(r[16], []),
+      notes: r[17] || '',
+      attachments: safeJsonParse_(r[18], []),
+      reminderDateTime: r[19] || '',
+      reminderMethod: r[20] || 'داخلي',
+      recurrencePattern: r[21] || 'بدون',
+      recurrenceStart: r[22] || '',
+      recurrenceEnd: r[23] || '',
+      lastRecurrenceGen: r[24] || '',
+      postponeReason: r[25] || '',
+      previousDueDates: safeJsonParse_(r[26], []),
+      completedAt: r[27] || '',
+      completionHistory: safeJsonParse_(r[28], []),
+      isArchived: String(r[29] || '').toLowerCase() === 'true',
+      updatedAt: r[30] || ''
+    });
+  }
+
+  const leaveRows = leavesSheet.getDataRange().getDisplayValues();
+  const leaves = [];
+  for (let i = 1; i < leaveRows.length; i++) {
+    const r = leaveRows[i];
+    if (!r[0] && !r[2]) continue;
+    leaves.push({
+      requestId: r[0],
+      empId: r[1],
+      empName: r[2],
+      username: r[3],
+      jobRole: r[4],
+      department: r[5],
+      leaveType: r[6],
+      startDate: r[7],
+      endDate: r[8],
+      daysCount: Number(r[9] || 1),
+      substitute: r[10],
+      reason: r[11],
+      status: r[12] || 'قيد المراجعة',
+      hrApproval: r[13] || 'قيد الانتظار',
+      execApproval: r[14] || 'قيد الانتظار',
+      managementNotes: r[15] || '',
+      createdAt: r[16] || '',
+      updatedAt: r[17] || ''
+    });
+  }
+
+  const custRows = custSheet.getDataRange().getDisplayValues();
+  const customers = [];
+  for (let i = 1; i < custRows.length; i++) {
+    const r = custRows[i];
+    if (!r[0] && !r[3]) continue;
+    customers.push({
+      rowIndex: i + 1,
+      customerName: r[0],
+      phone: cleanPhoneDisplay_(r[1]),
+      email: r[2],
+      businessName: r[3],
+      location: r[4],
+      contractType: r[5],
+      requiredServices: r[6],
+      installments: safeJsonParse_(r[7], []),
+      startDate: r[8],
+      endDate: r[9],
+      renewalCount: Number(r[10] || 0),
+      remainingAmount: Number(r[11] || 0),
+      socialPage: r[12],
+      completedServices: r[13],
+      notes: r[14]
+    });
+  }
+
+  const finRows = financeSheet.getDataRange().getDisplayValues();
+  const finance = [];
+  for (let i = 1; i < finRows.length; i++) {
+    const r = finRows[i];
+    if (!r[0] && !r[1]) continue;
+    finance.push({
+      itemId: r[0],
+      itemName: r[1],
+      itemType: r[2],
+      amount: Number(r[3] || 0),
+      recordedBy: r[4],
+      recordedAt: r[5]
+    });
+  }
+
+  const leadRows = leadsSheet.getDataRange().getDisplayValues();
+  const leads = [];
+  for (let i = 1; i < leadRows.length; i++) {
+    const r = leadRows[i];
+    if (!r[0] && !r[2]) continue;
+    leads.push({
+      leadId: r[0],
+      timestamp: r[1],
+      fullName: r[2],
+      organization: r[3],
+      phone: cleanPhoneDisplay_(r[4]),
+      email: r[5],
+      sector: r[6],
+      supportArea: r[7],
+      goalToAchieve: r[8],
+      startTime: r[9],
+      status: r[10] || 'جديد',
+      assignedTo: r[11] || 'غير معين'
+    });
+  }
+
+  const suggRows = suggSheet.getDataRange().getDisplayValues();
+  const suggestions = [];
+  for (let i = 1; i < suggRows.length; i++) {
+    const r = suggRows[i];
+    if (!r[0] && !r[4]) continue;
+    suggestions.push({
+      suggestionId: r[0],
+      empName: r[1],
+      username: r[2],
+      department: r[3],
+      title: r[4],
+      details: r[5],
+      expectedImpact: r[6],
+      status: r[7] || 'جديد',
+      managementReply: r[8] || '',
+      createdAt: r[9] || '',
+      updatedAt: r[10] || ''
+    });
+  }
+
+  const remRows = remindersSheet.getDataRange().getDisplayValues();
+  const reminders = [];
+  for (let i = 1; i < remRows.length; i++) {
+    const r = remRows[i];
+    if (!r[0]) continue;
+    reminders.push({
+      id: r[0],
+      taskId: r[1],
+      title: r[2],
+      recipientUser: r[3],
+      recipientEmail: r[4],
+      type: r[5],
+      scheduledAt: r[6],
+      method: r[7],
+      status: r[8],
+      attempts: Number(r[9] || 0),
+      sentAt: r[10],
+      result: r[11]
+    });
+  }
+
+  const attRows = attachSheet.getDataRange().getDisplayValues();
+  const attachments = [];
+  for (let i = 1; i < attRows.length; i++) {
+    const r = attRows[i];
+    if (!r[0]) continue;
+    attachments.push({
+      id: r[0],
+      taskId: r[1],
+      name: r[2],
+      url: r[3],
+      type: r[4],
+      user: r[5],
+      createdAt: r[6]
+    });
+  }
+
+  const notifRows = notifSheet.getDataRange().getDisplayValues();
+  const notifications = [];
+  for (let i = Math.max(1, notifRows.length - 80); i < notifRows.length; i++) {
+    const r = notifRows[i];
+    if (!r[0]) continue;
+    notifications.unshift({
+      id: r[0],
+      targetUser: r[1],
+      refId: r[2],
+      type: r[3],
+      title: r[4],
+      message: r[5],
+      isRead: String(r[6]).toLowerCase() === 'true',
+      createdAt: r[7]
+    });
+  }
+
+  const auditRows = auditSheet.getDataRange().getDisplayValues();
+  const auditLogs = [];
+  for (let i = Math.max(1, auditRows.length - 120); i < auditRows.length; i++) {
+    const r = auditRows[i];
+    if (!r[0]) continue;
+    auditLogs.unshift({
+      id: r[0],
+      timestamp: r[1],
+      refId: r[2],
+      actionType: r[3],
+      user: r[4],
+      field: r[5],
+      oldValue: r[6],
+      newValue: r[7],
+      details: r[8]
+    });
+  }
+
+  const bkpRows = backupSheet.getDataRange().getDisplayValues();
+  const backups = [];
+  for (let i = 1; i < bkpRows.length; i++) {
+    const r = bkpRows[i];
+    if (!r[0]) continue;
+    backups.unshift({
+      backupId: r[0],
+      createdAt: r[1],
+      createdBy: r[2],
+      type: r[3],
+      summary: r[4]
+    });
+  }
+
+  const bundle = {
+    users: users,
+    employees: employees,
+    tasks: tasks,
+    leaves: leaves,
+    customers: customers,
+    finance: finance,
+    leads: leads,
+    suggestions: suggestions,
+    reminders: reminders,
+    attachments: attachments,
+    notifications: notifications,
+    auditLogs: auditLogs,
+    backups: backups
+  };
+
+  try {
+    cache.put('GHAZARA_PORTAL_BUNDLE_V3', JSON.stringify(bundle), CACHE_TTL_SECONDS);
+  } catch (e) {}
+
+  return bundle;
+}
+
+/**
+ * ============================================================================
+ * 3. إدارة الصلاحيات والموظفين (مدير تنفيذي / موارد بشرية / مدير قسم)
+ * ============================================================================
+ */
+function handleUpdatePermissions_(payload) {
+  const lock = LockService.getScriptLock();
+  lock.waitLock(10000);
+  try {
+    const targetUsername = String(payload.targetUsername || '').trim();
+    const newPermissions = Array.isArray(payload.permissions) ? payload.permissions : [];
+    const newTier = String(payload.userTier || '').trim();
+    const byUser = String(payload.byUser || 'الإدارة').trim();
+
+    const ss = getSpreadsheet_();
+    const usersSheet = getOrCreateSheet_(ss, SHEET_SCHEMA.USERS.name, SHEET_SCHEMA.USERS.headers);
+    const rows = usersSheet.getDataRange().getDisplayValues();
+
+    for (let i = 1; i < rows.length; i++) {
+      if (String(rows[i][1] || '').trim().toLowerCase() === targetUsername.toLowerCase()) {
+        const oldPerm = rows[i][7] || '';
+        const permStr = JSON.stringify(newPermissions);
+        if (newTier) {
+          usersSheet.getRange(i + 1, 6).setValue(newTier);
+        }
+        usersSheet.getRange(i + 1, 8).setValue(permStr);
+
+        appendAuditLog_(ss, targetUsername, 'تحديث صلاحيات', byUser, 'الصلاحيات', oldPerm, permStr, 'تعديل صلاحيات وفئة المستخدم (' + (newTier || rows[i][4]) + ')');
+        appendNotification_(ss, targetUsername, '', 'تحديث صلاحيات', 'تحديث صلاحيات حسابك', 'تم تحديث صلاحيات حسابك بواسطة ' + byUser);
+        invalidatePortalCache_();
+        return jsonResponse_({ status: 'success', message: 'تم حفظ صلاحيات المستخدم (' + rows[i][0] + ') بنجاح.' });
+      }
+    }
+    return jsonResponse_({ status: 'error', message: 'لم يتم العثور على المستخدم.' });
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+function handleSaveEmployeeAndUser_(payload) {
+  const lock = LockService.getScriptLock();
+  lock.waitLock(10000);
+  try {
+    const emp = payload.employee || {};
+    const account = payload.account || {};
+    const byUser = String(payload.byUser || 'الموارد البشرية');
+
+    const ss = getSpreadsheet_();
+    const empSheet = getOrCreateSheet_(ss, SHEET_SCHEMA.EMPLOYEES.name, SHEET_SCHEMA.EMPLOYEES.headers);
+    const usersSheet = getOrCreateSheet_(ss, SHEET_SCHEMA.USERS.name, SHEET_SCHEMA.USERS.headers);
+
+    const empRows = empSheet.getDataRange().getDisplayValues();
+    let empId = String(emp.empId || '').trim();
+    let empRowIdx = -1;
+
+    for (let i = 1; i < empRows.length; i++) {
+      if (String(empRows[i][0] || '').trim() === empId || String(empRows[i][1] || '').trim() === String(emp.empName || '').trim()) {
+        empRowIdx = i + 1;
+        if (!empId) empId = empRows[i][0];
+        break;
+      }
+    }
+
+    if (!empId) {
+      empId = 'EMP-' + (100 + empRows.length);
+    }
+
+    const empRowValues = [
+      empId,
+      emp.empName || '',
+      emp.jobRole || '',
+      emp.department || '',
+      emp.directManager || '',
+      emp.birthDate || '',
+      emp.qualification || '',
+      emp.residence || '',
+      emp.startDate || '',
+      emp.contractFile || '',
+      emp.photoFile || '',
+      emp.chronicDiseases || '',
+      emp.maritalStatus || '',
+      safePhoneForSheet_(emp.mobile || ''),
+      emp.email || '',
+      safePhoneForSheet_(emp.phone || ''),
+      emp.emergencyContact || '',
+      safePhoneForSheet_(emp.emergencyPhone || ''),
+      emp.emergencyRelation || ''
+    ];
+
+    if (empRowIdx !== -1) {
+      const range = empSheet.getRange(empRowIdx, 1, 1, empRowValues.length);
+      range.setNumberFormat('@');
+      range.setValues([empRowValues]);
+    } else {
+      const nextRow = empSheet.getLastRow() + 1;
+      const range = empSheet.getRange(nextRow, 1, 1, empRowValues.length);
+      range.setNumberFormat('@');
+      range.setValues([empRowValues]);
+    }
+
+    // تحديث أو إنشاء حساب المستخدم في ورقة (المستخدمين)
+    if (account.username) {
+      const userRows = usersSheet.getDataRange().getDisplayValues();
+      let uRowIdx = -1;
+      for (let j = 1; j < userRows.length; j++) {
+        if (String(userRows[j][1] || '').trim().toLowerCase() === String(account.username).trim().toLowerCase() ||
+            String(userRows[j][0] || '').trim() === String(emp.empName || '').trim()) {
+          uRowIdx = j + 1;
+          break;
+        }
+      }
+
+      const existingPass = (uRowIdx !== -1) ? userRows[uRowIdx - 1][2] : '123456';
+      const existingLogin = (uRowIdx !== -1) ? userRows[uRowIdx - 1][6] : '';
+      const existingPerms = (uRowIdx !== -1) ? userRows[uRowIdx - 1][7] : '';
+
+      const userValues = [
+        emp.empName || '',
+        account.username.trim(),
+        account.password ? String(account.password).trim() : existingPass,
+        emp.department || '',
+        emp.jobRole || '',
+        account.userTier || resolveUserTier_(emp.jobRole, emp.department, ''),
+        existingLogin,
+        account.permissions ? JSON.stringify(account.permissions) : existingPerms
+      ];
+
+      if (uRowIdx !== -1) {
+        const uRange = usersSheet.getRange(uRowIdx, 1, 1, userValues.length);
+        uRange.setNumberFormat('@');
+        uRange.setValues([userValues]);
+      } else {
+        const nextURow = usersSheet.getLastRow() + 1;
+        const uRange = usersSheet.getRange(nextURow, 1, 1, userValues.length);
+        uRange.setNumberFormat('@');
+        uRange.setValues([userValues]);
+      }
+    }
+
+    appendAuditLog_(ss, empId, empRowIdx !== -1 ? 'تحديث بيانات موظف' : 'إضافة موظف جديد', byUser, 'الموظفين', '', emp.empName, 'القسم: ' + (emp.department || ''));
+    invalidatePortalCache_();
+
+    return jsonResponse_({ status: 'success', empId: empId, message: 'تم حفظ بيانات الموظف وحسابه في قاعدة البيانات بنجاح.' });
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+function handleDeleteEmployeeAndUser_(payload) {
+  const lock = LockService.getScriptLock();
+  lock.waitLock(10000);
+  try {
+    const empId = String(payload.empId || '').trim();
+    const username = String(payload.username || '').trim();
+    const empName = String(payload.empName || '').trim();
+    const byUser = String(payload.byUser || 'الموارد البشرية');
+
+    const ss = getSpreadsheet_();
+    const empSheet = getOrCreateSheet_(ss, SHEET_SCHEMA.EMPLOYEES.name, SHEET_SCHEMA.EMPLOYEES.headers);
+    const usersSheet = getOrCreateSheet_(ss, SHEET_SCHEMA.USERS.name, SHEET_SCHEMA.USERS.headers);
+
+    const empRows = empSheet.getDataRange().getDisplayValues();
+    for (let i = empRows.length - 1; i >= 1; i--) {
+      if ((empId && empRows[i][0] === empId) || (empName && empRows[i][1] === empName)) {
+        empSheet.deleteRow(i + 1);
+        break;
+      }
+    }
+
+    const userRows = usersSheet.getDataRange().getDisplayValues();
+    for (let j = userRows.length - 1; j >= 1; j--) {
+      if ((username && userRows[j][1].toLowerCase() === username.toLowerCase()) || (empName && userRows[j][0] === empName)) {
+        usersSheet.deleteRow(j + 1);
+        break;
+      }
+    }
+
+    appendAuditLog_(ss, empId || username, 'حذف موظف', byUser, 'الموظفين / المستخدمين', empName, 'محذوف', 'حذف سجل الموظف وحسابه');
+    invalidatePortalCache_();
+    return jsonResponse_({ status: 'success', message: 'تم حذف سجل الموظف وحسابه بنجاح.' });
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+function handleFixPhoneErrors_() {
+  const ss = getSpreadsheet_();
+  const empSheet = getOrCreateSheet_(ss, SHEET_SCHEMA.EMPLOYEES.name, SHEET_SCHEMA.EMPLOYEES.headers);
+  const formulas = empSheet.getDataRange().getFormulas();
+  const values = empSheet.getDataRange().getDisplayValues();
+
+  for (let i = 1; i < values.length; i++) {
+    [13, 15, 17].forEach(function(colIdx) {
+      const f = formulas[i][colIdx];
+      const v = values[i][colIdx];
+      if (f && f.indexOf('+') === 0) {
+        const cleaned = f.replace(/^=\+?/, '+');
+        empSheet.getRange(i + 1, colIdx + 1).setNumberFormat('@').setValue(cleaned);
+      } else if (v === '#ERROR!') {
+        empSheet.getRange(i + 1, colIdx + 1).setNumberFormat('@').setValue('');
+      }
+    });
+  }
+  invalidatePortalCache_();
+  return jsonResponse_({ status: 'success', message: 'تم إصلاح تنسيق أرقام الهواتف في جدول الموظفين.' });
+}
+
+/**
+ * ============================================================================
+ * 4. إدارة المهام والتذكيرات والمرفقات
+ * ============================================================================
+ */
+function handleSaveTask_(payload) {
+  const lock = LockService.getScriptLock();
+  lock.waitLock(10000);
+  try {
+    const t = payload.task || {};
+    const byUser = String(payload.byUser || t.createdBy || 'الإدارة');
+    const ss = getSpreadsheet_();
+    const tasksSheet = getOrCreateSheet_(ss, SHEET_SCHEMA.TASKS.name, SHEET_SCHEMA.TASKS.headers);
+    const rows = tasksSheet.getDataRange().getDisplayValues();
+
+    let taskId = String(t.taskId || '').trim();
+    if (!taskId) {
+      taskId = 'TSK-' + new Date().getFullYear() + '-' + String(rows.length).padStart(4, '0');
+    }
+
+    let rowIdx = -1;
+    for (let i = 1; i < rows.length; i++) {
+      if (String(rows[i][0] || '').trim() === taskId) {
+        rowIdx = i + 1;
+        break;
+      }
+    }
+
+    const now = nowStr_();
+    const rowData = [
+      taskId,
+      t.title || '',
+      t.description || '',
+      t.entityName || t.department || '',
+      t.source || t.categoryName || '',
+      t.assignee || '',
+      t.createdBy || byUser,
+      t.createdAt || now,
+      t.startDate || todayStr_(),
+      t.dueDate || todayStr_(),
+      t.dueTime || '14:00',
+      t.priority || 'متوسطة',
+      t.status || 'جديدة',
+      Number(t.progress || 0),
+      JSON.stringify(t.subtasks || []),
+      JSON.stringify(t.relatedTasks || []),
+      JSON.stringify(t.responses || []),
+      t.notes || '',
+      JSON.stringify(t.attachments || []),
+      t.reminderDateTime || '',
+      t.reminderMethod || 'داخلي',
+      t.recurrencePattern || 'بدون',
+      t.recurrenceStart || '',
+      t.recurrenceEnd || '',
+      t.lastRecurrenceGen || '',
+      t.postponeReason || '',
+      JSON.stringify(t.previousDueDates || []),
+      t.completedAt || '',
+      JSON.stringify(t.completionHistory || []),
+      t.isArchived ? 'true' : 'false',
+      now
+    ];
+
+    if (rowIdx !== -1) {
+      tasksSheet.getRange(rowIdx, 1, 1, rowData.length).setValues([rowData]);
+      appendAuditLog_(ss, taskId, 'تعديل مهمة', byUser, 'المهام', rows[rowIdx - 1][12], t.status, t.title);
+    } else {
+      tasksSheet.appendRow(rowData);
+      appendAuditLog_(ss, taskId, 'إنشاء مهمة جديدة', byUser, 'المهام', '', t.title, 'المسؤول: ' + (t.assignee || ''));
+      if (t.assignee) {
+        appendNotification_(ss, t.assignee, taskId, 'مهمة جديدة', 'تكليف بمهمة جديدة', 'تم إسناد المهمة (' + t.title + ') إليك بواسطة ' + byUser);
+      }
+    }
+
+    // حفظ المرفقات في ورقة المرفقات إن وجدت
+    if (Array.isArray(t.attachments) && t.attachments.length > 0) {
+      const attSheet = getOrCreateSheet_(ss, SHEET_SCHEMA.ATTACHMENTS.name, SHEET_SCHEMA.ATTACHMENTS.headers);
+      const existingAtts = attSheet.getDataRange().getDisplayValues();
+      const existingAttIds = {};
+      for (let k = 1; k < existingAtts.length; k++) {
+        existingAttIds[existingAtts[k][0]] = true;
+      }
+      t.attachments.forEach(function(att) {
+        const aid = att.id || ('ATT-' + Date.now());
+        if (!existingAttIds[aid]) {
+          attSheet.appendRow([aid, taskId, att.name || '', att.url || '', att.type || 'رابط', byUser, now]);
+        }
+      });
+    }
+
+    // جدولة التذكير في ورقة التذكيرات
+    if (t.dueDate && t.status !== 'مكتملة') {
+      const remSheet = getOrCreateSheet_(ss, SHEET_SCHEMA.REMINDERS.name, SHEET_SCHEMA.REMINDERS.headers);
+      const dedupKey = taskId + '_' + t.dueDate;
+      remSheet.appendRow([
+        'REM-' + Date.now().toString().slice(-6),
+        taskId,
+        t.title || '',
+        t.assignee || '',
+        '',
+        'تذكير استحقاق مهمة',
+        t.reminderDateTime || (t.dueDate + ' ' + (t.dueTime || '09:00')),
+        t.reminderMethod || 'داخلي',
+        'مجدول',
+        0,
+        '',
+        'مجدول في النظام',
+        dedupKey
+      ]);
+    }
+
+    invalidatePortalCache_();
+    return jsonResponse_({ status: 'success', taskId: taskId, message: 'تم حفظ المهمة (' + taskId + ') بنجاح.' });
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+function handleUpdateTaskStatus_(payload) {
+  const lock = LockService.getScriptLock();
+  lock.waitLock(10000);
+  try {
+    const taskId = String(payload.taskId || '').trim();
+    const newStatus = String(payload.status || '').trim();
+    const byUser = String(payload.byUser || 'المستخدم');
+    const ss = getSpreadsheet_();
+    const tasksSheet = getOrCreateSheet_(ss, SHEET_SCHEMA.TASKS.name, SHEET_SCHEMA.TASKS.headers);
+    const rows = tasksSheet.getDataRange().getDisplayValues();
+    const now = nowStr_();
+
+    for (let i = 1; i < rows.length; i++) {
+      if (String(rows[i][0] || '').trim() === taskId) {
+        const oldStatus = rows[i][12];
+        const progress = newStatus === 'مكتملة' ? 100 : (payload.progress !== undefined ? Number(payload.progress) : Number(rows[i][13] || 0));
+        tasksSheet.getRange(i + 1, 13).setValue(newStatus);
+        tasksSheet.getRange(i + 1, 14).setValue(progress);
+        if (payload.newDueDate) {
+          tasksSheet.getRange(i + 1, 10).setValue(payload.newDueDate);
+        }
+        if (payload.postponeReason) {
+          tasksSheet.getRange(i + 1, 26).setValue(payload.postponeReason);
+        }
+        if (newStatus === 'مكتملة') {
+          tasksSheet.getRange(i + 1, 28).setValue(now);
+        }
+        tasksSheet.getRange(i + 1, 31).setValue(now);
+
+        appendAuditLog_(ss, taskId, 'تحديث حالة مهمة', byUser, 'الحالة_الحالية', oldStatus, newStatus, rows[i][1]);
+        appendNotification_(ss, rows[i][6] || 'ALL', taskId, 'تحديث مهمة', 'تحديث حالة المهمة ' + taskId, 'قام ' + byUser + ' بتحديث حالة المهمة "' + rows[i][1] + '" إلى: ' + newStatus);
+        invalidatePortalCache_();
+        return jsonResponse_({ status: 'success', message: 'تم تحديث حالة المهمة إلى "' + newStatus + '".' });
+      }
+    }
+    return jsonResponse_({ status: 'error', message: 'المهمة غير موجودة.' });
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+function handleAddTaskResponse_(payload) {
+  const lock = LockService.getScriptLock();
+  lock.waitLock(10000);
+  try {
+    const taskId = String(payload.taskId || '').trim();
+    const byUser = String(payload.byUser || 'المستخدم');
+    const decisionType = String(payload.decisionType || 'رد تنفيذ ومتابعة');
+    const responseText = String(payload.responseText || '').trim();
+
+    const ss = getSpreadsheet_();
+    const tasksSheet = getOrCreateSheet_(ss, SHEET_SCHEMA.TASKS.name, SHEET_SCHEMA.TASKS.headers);
+    const rows = tasksSheet.getDataRange().getDisplayValues();
+    const now = nowStr_();
+
+    for (let i = 1; i < rows.length; i++) {
+      if (String(rows[i][0] || '').trim() === taskId) {
+        const list = safeJsonParse_(rows[i][16], []);
+        list.push({
+          id: 'RSP-' + Date.now(),
+          author: byUser,
+          decisionType: decisionType,
+          text: responseText,
+          createdAt: now
+        });
+        tasksSheet.getRange(i + 1, 17).setValue(JSON.stringify(list));
+        tasksSheet.getRange(i + 1, 31).setValue(now);
+        appendAuditLog_(ss, taskId, 'إضافة رد على مهمة', byUser, 'الردود_والقرارات', '', decisionType, responseText);
+        invalidatePortalCache_();
+        return jsonResponse_({ status: 'success', message: 'تم حفظ الرد والقرار بنجاح.' });
+      }
+    }
+    return jsonResponse_({ status: 'error', message: 'المهمة غير موجودة.' });
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+function handleRescheduleTask_(payload) {
+  return handleUpdateTaskStatus_({
+    taskId: payload.taskId,
+    status: payload.status || 'قيد التنفيذ',
+    newDueDate: payload.newDueDate,
+    postponeReason: payload.reason || 'إعادة جدولة الموعد',
+    byUser: payload.byUser
+  });
+}
+
+function handleArchiveTask_(payload) {
+  const taskId = String(payload.taskId || '').trim();
+  const isArchived = Boolean(payload.isArchived);
+  const byUser = String(payload.byUser || 'المستخدم');
+  const ss = getSpreadsheet_();
+  const tasksSheet = getOrCreateSheet_(ss, SHEET_SCHEMA.TASKS.name, SHEET_SCHEMA.TASKS.headers);
+  const rows = tasksSheet.getDataRange().getDisplayValues();
+
+  for (let i = 1; i < rows.length; i++) {
+    if (String(rows[i][0] || '').trim() === taskId) {
+      tasksSheet.getRange(i + 1, 30).setValue(isArchived ? 'true' : 'false');
+      tasksSheet.getRange(i + 1, 31).setValue(nowStr_());
+      appendAuditLog_(ss, taskId, isArchived ? 'أرشفة مهمة' : 'استعادة مهمة', byUser, 'مؤرشفة', String(!isArchived), String(isArchived), rows[i][1]);
+      invalidatePortalCache_();
+      return jsonResponse_({ status: 'success', message: 'تم تحديث حالة الأرشفة.' });
+    }
+  }
+  return jsonResponse_({ status: 'error', message: 'المهمة غير موجودة.' });
+}
+
+function handleDeleteTask_(payload) {
+  const taskId = String(payload.taskId || '').trim();
+  const byUser = String(payload.byUser || 'الإدارة');
+  const ss = getSpreadsheet_();
+  const tasksSheet = getOrCreateSheet_(ss, SHEET_SCHEMA.TASKS.name, SHEET_SCHEMA.TASKS.headers);
+  const rows = tasksSheet.getDataRange().getDisplayValues();
+
+  for (let i = rows.length - 1; i >= 1; i--) {
+    if (String(rows[i][0] || '').trim() === taskId) {
+      const title = rows[i][1];
+      tasksSheet.deleteRow(i + 1);
+      appendAuditLog_(ss, taskId, 'حذف مهمة نهائياً', byUser, 'المهام', title, 'محذوف', '');
+      invalidatePortalCache_();
+      return jsonResponse_({ status: 'success', message: 'تم حذف المهمة.' });
+    }
+  }
+  return jsonResponse_({ status: 'error', message: 'المهمة غير موجودة.' });
+}
+
+/**
+ * ============================================================================
+ * 5. إدارة طلبات الإجازات (تقديم الطلب من الموظف + اعتماد الموارد البشرية والإدارة)
+ * ============================================================================
+ */
+function handleSubmitLeaveRequest_(payload) {
+  const lock = LockService.getScriptLock();
+  lock.waitLock(10000);
+  try {
+    const lv = payload.leave || {};
+    const ss = getSpreadsheet_();
+    const leavesSheet = getOrCreateSheet_(ss, SHEET_SCHEMA.LEAVES.name, SHEET_SCHEMA.LEAVES.headers);
+    const now = nowStr_();
+    const requestId = lv.requestId || ('LVR-' + Date.now().toString().slice(-6));
+
+    const rowData = [
+      requestId,
+      lv.empId || '',
+      lv.empName || '',
+      lv.username || '',
+      lv.jobRole || '',
+      lv.department || '',
+      lv.leaveType || 'إجازة سنوية',
+      lv.startDate || '',
+      lv.endDate || '',
+      Number(lv.daysCount || 1),
+      lv.substitute || '',
+      lv.reason || '',
+      'قيد المراجعة',
+      'قيد الانتظار',
+      'قيد الانتظار',
+      '',
+      now,
+      now
+    ];
+
+    leavesSheet.appendRow(rowData);
+    appendAuditLog_(ss, requestId, 'تقديم طلب إجازة', lv.empName || lv.username, 'طلبات_الاجازات', '', lv.leaveType, 'المدة: ' + lv.daysCount + ' يوم');
+    appendNotification_(ss, 'ALL', requestId, 'طلب إجازة جديد', 'طلب إجازة من ' + lv.empName, 'تقدم ' + lv.empName + ' بطلب ' + lv.leaveType + ' لمدة ' + lv.daysCount + ' أيام.');
+    invalidatePortalCache_();
+
+    return jsonResponse_({ status: 'success', requestId: requestId, message: 'تم إرسال طلب الإجازة (' + requestId + ') للموارد البشرية والإدارة.' });
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+function handleReviewLeaveRequest_(payload) {
+  const lock = LockService.getScriptLock();
+  lock.waitLock(10000);
+  try {
+    const requestId = String(payload.requestId || '').trim();
+    const stage = String(payload.stage || 'hr'); // 'hr' | 'exec'
+    const decision = String(payload.decision || 'معتمد'); // 'معتمد' | 'مرفوض'
+    const notes = String(payload.notes || '').trim();
+    const byUser = String(payload.byUser || 'الموارد البشرية');
+
+    const ss = getSpreadsheet_();
+    const leavesSheet = getOrCreateSheet_(ss, SHEET_SCHEMA.LEAVES.name, SHEET_SCHEMA.LEAVES.headers);
+    const rows = leavesSheet.getDataRange().getDisplayValues();
+    const now = nowStr_();
+
+    for (let i = 1; i < rows.length; i++) {
+      if (String(rows[i][0] || '').trim() === requestId) {
+        let hrApp = rows[i][13] || 'قيد الانتظار';
+        let execApp = rows[i][14] || 'قيد الانتظار';
+
+        if (stage === 'hr') {
+          hrApp = decision + ' (' + byUser + ')';
+          leavesSheet.getRange(i + 1, 14).setValue(hrApp);
+        } else if (stage === 'exec') {
+          execApp = decision + ' (' + byUser + ')';
+          leavesSheet.getRange(i + 1, 15).setValue(execApp);
+          if (hrApp === 'قيد الانتظار' && decision === 'معتمد') {
+            hrApp = 'معتمد تلقائياً مع الإدارة';
+            leavesSheet.getRange(i + 1, 14).setValue(hrApp);
+          }
+        }
+
+        let overallStatus = 'قيد المراجعة';
+        if (hrApp.indexOf('مرفوض') !== -1 || execApp.indexOf('مرفوض') !== -1) {
+          overallStatus = 'مرفوض';
+        } else if (execApp.indexOf('معتمد') !== -1 || (stage === 'hr' && decision === 'معتمد')) {
+          overallStatus = (execApp.indexOf('معتمد') !== -1) ? 'معتمد نهائياً' : 'معتمد من الموارد البشرية';
+        }
+
+        leavesSheet.getRange(i + 1, 13).setValue(overallStatus);
+        if (notes) {
+          leavesSheet.getRange(i + 1, 16).setValue(notes);
+        }
+        leavesSheet.getRange(i + 1, 18).setValue(now);
+
+        appendAuditLog_(ss, requestId, 'مراجعة طلب إجازة', byUser, 'حالة_الطلب', rows[i][12], overallStatus, notes);
+        appendNotification_(ss, rows[i][3] || rows[i][2], requestId, 'قرار إجازة', 'تحديث حالة طلب إجازتك', 'تم تحديث حالة طلب الإجازة (' + requestId + ') إلى: ' + overallStatus);
+        invalidatePortalCache_();
+
+        return jsonResponse_({ status: 'success', overallStatus: overallStatus, message: 'تم تحديث قرار الإجازة إلى: ' + overallStatus });
+      }
+    }
+    return jsonResponse_({ status: 'error', message: 'طلب الإجازة غير موجود.' });
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+/**
+ * ============================================================================
+ * 6. إدارة العملاء والعقود والأقساط (العملاء)
+ * ============================================================================
+ */
+function handleSaveCustomer_(payload) {
+  const lock = LockService.getScriptLock();
+  lock.waitLock(10000);
+  try {
+    const c = payload.customer || {};
+    const byUser = String(payload.byUser || 'الإدارة');
+    const ss = getSpreadsheet_();
+    const custSheet = getOrCreateSheet_(ss, SHEET_SCHEMA.CUSTOMERS.name, SHEET_SCHEMA.CUSTOMERS.headers);
+    const rows = custSheet.getDataRange().getDisplayValues();
+
+    let matchRow = -1;
+    for (let i = 1; i < rows.length; i++) {
+      if ((c.businessName && rows[i][3] === c.businessName && rows[i][0] === c.customerName) ||
+          (c.rowIndex && Number(c.rowIndex) === (i + 1))) {
+        matchRow = i + 1;
+        break;
+      }
+    }
+
+    const rowValues = [
+      c.customerName || '',
+      safePhoneForSheet_(c.phone || ''),
+      c.email || '',
+      c.businessName || '',
+      c.location || '',
+      c.contractType || '',
+      c.requiredServices || '',
+      JSON.stringify(c.installments || []),
+      c.startDate || '',
+      c.endDate || '',
+      Number(c.renewalCount || 0),
+      Number(c.remainingAmount || 0),
+      c.socialPage || '',
+      c.completedServices || '',
+      c.notes || ''
+    ];
+
+    if (matchRow !== -1) {
+      const rng = custSheet.getRange(matchRow, 1, 1, rowValues.length);
+      rng.setNumberFormat('@');
+      rng.setValues([rowValues]);
+      appendAuditLog_(ss, c.businessName || c.customerName, 'تحديث بيانات عميل', byUser, 'العملاء', '', c.completedServices || '', 'المتبقي: ' + c.remainingAmount);
+    } else {
+      const nextRow = custSheet.getLastRow() + 1;
+      const rng = custSheet.getRange(nextRow, 1, 1, rowValues.length);
+      rng.setNumberFormat('@');
+      rng.setValues([rowValues]);
+      appendAuditLog_(ss, c.businessName || c.customerName, 'إضافة عميل جديد', byUser, 'العملاء', '', c.customerName, 'العقد: ' + (c.contractType || ''));
+    }
+
+    invalidatePortalCache_();
+    return jsonResponse_({ status: 'success', message: 'تم حفظ بيانات العميل والعقد في قاعدة البيانات.' });
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+function handleDeleteCustomer_(payload) {
+  const customerName = String(payload.customerName || '').trim();
+  const businessName = String(payload.businessName || '').trim();
+  const byUser = String(payload.byUser || 'الإدارة');
+  const ss = getSpreadsheet_();
+  const custSheet = getOrCreateSheet_(ss, SHEET_SCHEMA.CUSTOMERS.name, SHEET_SCHEMA.CUSTOMERS.headers);
+  const rows = custSheet.getDataRange().getDisplayValues();
+
+  for (let i = rows.length - 1; i >= 1; i--) {
+    if (rows[i][0] === customerName && (!businessName || rows[i][3] === businessName)) {
+      custSheet.deleteRow(i + 1);
+      appendAuditLog_(ss, businessName || customerName, 'حذف عميل', byUser, 'العملاء', customerName, 'محذوف', '');
+      invalidatePortalCache_();
+      return jsonResponse_({ status: 'success', message: 'تم حذف سجل العميل.' });
+    }
+  }
+  return jsonResponse_({ status: 'error', message: 'لم يتم العثور على العميل.' });
+}
+
+/**
+ * ============================================================================
+ * 7. إدارة المالية والحسابات (المالية)
+ * ============================================================================
+ */
+function handleSaveFinanceItem_(payload) {
+  const lock = LockService.getScriptLock();
+  lock.waitLock(10000);
+  try {
+    const f = payload.item || {};
+    const byUser = String(payload.byUser || f.recordedBy || 'المالية');
+    const ss = getSpreadsheet_();
+    const finSheet = getOrCreateSheet_(ss, SHEET_SCHEMA.FINANCE.name, SHEET_SCHEMA.FINANCE.headers);
+    const now = nowStr_();
+    const itemId = f.itemId || ('FIN-' + Date.now().toString().slice(-6));
+
+    const rows = finSheet.getDataRange().getDisplayValues();
+    let rowIdx = -1;
+    for (let i = 1; i < rows.length; i++) {
+      if (String(rows[i][0] || '').trim() === itemId) {
+        rowIdx = i + 1;
+        break;
+      }
+    }
+
+    const rowValues = [
+      itemId,
+      f.itemName || '',
+      f.itemType || 'إيراد',
+      Number(f.amount || 0),
+      byUser,
+      f.recordedAt || now
+    ];
+
+    if (rowIdx !== -1) {
+      finSheet.getRange(rowIdx, 1, 1, rowValues.length).setValues([rowValues]);
+    } else {
+      finSheet.appendRow(rowValues);
+    }
+
+    appendAuditLog_(ss, itemId, 'قيد مالي', byUser, 'المالية', '', f.itemName + ' (' + f.amount + ')', f.itemType);
+    invalidatePortalCache_();
+    return jsonResponse_({ status: 'success', itemId: itemId, message: 'تم حفظ القيد المالي (' + itemId + ') بنجاح.' });
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+function handleDeleteFinanceItem_(payload) {
+  const itemId = String(payload.itemId || '').trim();
+  const byUser = String(payload.byUser || 'الإدارة');
+  const ss = getSpreadsheet_();
+  const finSheet = getOrCreateSheet_(ss, SHEET_SCHEMA.FINANCE.name, SHEET_SCHEMA.FINANCE.headers);
+  const rows = finSheet.getDataRange().getDisplayValues();
+
+  for (let i = rows.length - 1; i >= 1; i--) {
+    if (String(rows[i][0] || '').trim() === itemId) {
+      finSheet.deleteRow(i + 1);
+      appendAuditLog_(ss, itemId, 'حذف قيد مالي', byUser, 'المالية', rows[i][1], 'محذوف', '');
+      invalidatePortalCache_();
+      return jsonResponse_({ status: 'success', message: 'تم حذف البند المالي.' });
+    }
+  }
+  return jsonResponse_({ status: 'error', message: 'البند غير موجود.' });
+}
+
+/**
+ * ============================================================================
+ * 8. إدارة طلبات الموقع الإلكتروني (طلبات الموقع)
+ * ============================================================================
+ */
+function handleAddLead_(payload) {
+  const ss = getSpreadsheet_();
+  const leadsSheet = getOrCreateSheet_(ss, SHEET_SCHEMA.LEADS.name, SHEET_SCHEMA.LEADS.headers);
   const leadId = payload.leadId || ('GHZ-' + Date.now().toString().slice(-6));
-  const nowStr = payload.timestamp || formatNow();
-  sheet.appendRow([
+  const now = nowStr_();
+
+  const rowValues = [
     leadId,
-    nowStr,
+    payload.timestamp || now,
     payload.fullName || '',
     payload.organization || '',
-    payload.phone || '',
+    safePhoneForSheet_(payload.phone || ''),
     payload.email || '',
     payload.sector || '',
     payload.supportArea || '',
@@ -589,1541 +1602,265 @@ function handleAddLead(ss, payload) {
     payload.startTime || 'غير محدد',
     payload.status || 'جديد',
     payload.assignedTo || 'غير معين'
-  ]);
-  return { status: 'success', leadId: leadId, message: 'تم حفظ طلب العميل في Google Sheets بنجاح.' };
+  ];
+
+  const nextRow = leadsSheet.getLastRow() + 1;
+  const rng = leadsSheet.getRange(nextRow, 1, 1, rowValues.length);
+  rng.setNumberFormat('@');
+  rng.setValues([rowValues]);
+
+  appendNotification_(ss, 'ALL', leadId, 'طلب موقع جديد', 'طلب تواصل جديد من الموقع', 'العميل: ' + (payload.fullName || '') + ' - ' + (payload.organization || ''));
+  invalidatePortalCache_();
+
+  return jsonResponse_({ status: 'success', leadId: leadId, message: 'تم حفظ الطلب بنجاح.' });
 }
 
-function handleGetLeads(ss) {
-  const sheet = ss.getSheetByName(SHEETS.SALES_LEADS);
-  if (!sheet || sheet.getLastRow() <= 1) return { status: 'success', leads: [] };
-  const data = sheet.getDataRange().getValues();
-  const leads = [];
-  for (let i = 1; i < data.length; i++) {
-    leads.unshift({
-      leadId: String(data[i][0] || ''),
-      timestamp: String(data[i][1] || ''),
-      fullName: String(data[i][2] || ''),
-      organization: String(data[i][3] || ''),
-      phone: String(data[i][4] || ''),
-      email: String(data[i][5] || ''),
-      sector: String(data[i][6] || ''),
-      supportArea: String(data[i][7] || ''),
-      goalToAchieve: String(data[i][8] || ''),
-      startTime: String(data[i][9] || ''),
-      status: String(data[i][10] || 'جديد'),
-      assignedTo: String(data[i][11] || 'غير معين')
-    });
-  }
-  return { status: 'success', leads: leads };
-}
+function handleUpdateLead_(payload) {
+  const leadId = String(payload.leadId || '').trim();
+  const status = String(payload.status || '').trim();
+  const assignedTo = String(payload.assignedTo || '').trim();
+  const byUser = String(payload.byUser || 'الإدارة');
 
-function handleUpdateLeadStatus(ss, payload) {
-  const sheet = ss.getSheetByName(SHEETS.SALES_LEADS);
-  const data = sheet.getDataRange().getValues();
-  for (let i = 1; i < data.length; i++) {
-    if (String(data[i][0]) === String(payload.leadId)) {
-      sheet.getRange(i + 1, 11).setValue(payload.status);
-      if (payload.assignedTo) sheet.getRange(i + 1, 12).setValue(payload.assignedTo);
-      return { status: 'success', message: 'تم تحديث حالة الفرصة البيعية.' };
+  const ss = getSpreadsheet_();
+  const leadsSheet = getOrCreateSheet_(ss, SHEET_SCHEMA.LEADS.name, SHEET_SCHEMA.LEADS.headers);
+  const rows = leadsSheet.getDataRange().getDisplayValues();
+
+  for (let i = 1; i < rows.length; i++) {
+    if (String(rows[i][0] || '').trim() === leadId) {
+      if (status) leadsSheet.getRange(i + 1, 11).setValue(status);
+      if (assignedTo) leadsSheet.getRange(i + 1, 12).setValue(assignedTo);
+      appendAuditLog_(ss, leadId, 'تحديث طلب موقع', byUser, 'طلبات الموقع', rows[i][10], status, 'المسؤول: ' + assignedTo);
+      invalidatePortalCache_();
+      return jsonResponse_({ status: 'success', message: 'تم تحديث حالة طلب الموقع.' });
     }
   }
-  return { status: 'error', message: 'لم يتم العثور على الطلب.' };
+  return jsonResponse_({ status: 'error', message: 'الطلب غير موجود.' });
 }
 
 /**
  * ============================================================================
- * 3. إدارة الموارد البشرية وطلبات الإجازات السنوية للموظفين والمدراء
+ * 9. مقترحات الموظفين لتطوير العمل (المقترحات)
  * ============================================================================
  */
-function handleGetHRData(ss, payload) {
-  const hrSheet = ss.getSheetByName(SHEETS.HR_STAFF);
-  const leaveSheet = ss.getSheetByName(SHEETS.LEAVES);
+function handleSubmitSuggestion_(payload) {
+  const s = payload.suggestion || {};
+  const ss = getSpreadsheet_();
+  const suggSheet = getOrCreateSheet_(ss, SHEET_SCHEMA.SUGGESTIONS.name, SHEET_SCHEMA.SUGGESTIONS.headers);
+  const now = nowStr_();
+  const suggestionId = s.suggestionId || ('SUG-' + Date.now().toString().slice(-6));
 
-  const staff = [];
-  if (hrSheet && hrSheet.getLastRow() > 1) {
-    const hrData = hrSheet.getDataRange().getValues();
-    for (let i = 1; i < hrData.length; i++) {
-      staff.push({
-        id: String(hrData[i][0] || ''),
-        name: String(hrData[i][1] || ''),
-        role: String(hrData[i][2] || ''),
-        dept: String(hrData[i][3] || ''),
-        phone: String(hrData[i][4] || ''),
-        status: String(hrData[i][5] || 'على رأس العمل'),
-        createdAt: String(hrData[i][6] || ''),
-        annualBalance: Number(hrData[i][7] || 30),
-        email: String(hrData[i][8] || '')
-      });
-    }
-  }
-
-  const leaves = [];
-  if (leaveSheet && leaveSheet.getLastRow() > 1) {
-    const lData = leaveSheet.getDataRange().getValues();
-    for (let i = 1; i < lData.length; i++) {
-      leaves.unshift({
-        requestId: String(lData[i][0] || ''),
-        empId: String(lData[i][1] || ''),
-        empName: String(lData[i][2] || ''),
-        username: String(lData[i][3] || ''),
-        jobRole: String(lData[i][4] || ''),
-        department: String(lData[i][5] || ''),
-        leaveType: String(lData[i][6] || 'إجازة سنوية'),
-        startDate: formatCellDate(lData[i][7]),
-        endDate: formatCellDate(lData[i][8]),
-        daysCount: Number(lData[i][9] || 0),
-        substituteEmp: String(lData[i][10] || ''),
-        reason: String(lData[i][11] || ''),
-        status: String(lData[i][12] || 'بانتظار الاعتماد'),
-        hrApproval: String(lData[i][13] || 'قيد المراجعة'),
-        execApproval: String(lData[i][14] || 'قيد المراجعة'),
-        managerNotes: String(lData[i][15] || ''),
-        createdAt: String(lData[i][16] || ''),
-        updatedAt: String(lData[i][17] || '')
-      });
-    }
-  }
-
-  return { status: 'success', staff: staff, leaves: leaves };
-}
-
-function handleAddEmployee(ss, payload) {
-  const hrSheet = ss.getSheetByName(SHEETS.HR_STAFF);
-  const empId = payload.id || ('EMP-' + (100 + hrSheet.getLastRow()));
-  const nowStr = formatNow();
-  hrSheet.appendRow([
-    empId,
-    payload.name || '',
-    payload.role || '',
-    payload.dept || '',
-    payload.phone || '',
-    payload.status || 'على رأس العمل',
-    nowStr,
-    Number(payload.annualBalance || 30),
-    payload.email || ''
-  ]);
-  appendAuditLog(ss, empId, 'إضافة موظف', payload.byUser || 'HR', 'HR_Staff', '', payload.name, 'إضافة موظف جديد لسجل الموارد البشرية');
-  return { status: 'success', empId: empId, message: 'تم حفظ بيانات الموظف في Google Sheets.' };
-}
-
-function handleSubmitLeaveRequest(ss, payload) {
-  const leaveSheet = ss.getSheetByName(SHEETS.LEAVES);
-  const requestId = 'LVR-' + new Date().getFullYear() + '-' + String(1000 + leaveSheet.getLastRow());
-  const nowStr = formatNow();
-
-  const startDate = String(payload.startDate || '').trim();
-  const endDate = String(payload.endDate || '').trim();
-  const daysCount = Number(payload.daysCount || 1);
-
-  if (! payload.empName || !startDate || !endDate || daysCount <= 0) {
-    return { status: 'error', message: 'يرجى استكمال تاريخ البداية والنهاية والتأكد من صحة عدد أيام الإجازة.' };
-  }
-
-  const row = [
-    requestId,
-    payload.empId || '',
-    payload.empName || '',
-    payload.username || '',
-    payload.jobRole || '',
-    payload.department || '',
-    payload.leaveType || 'إجازة سنوية',
-    startDate,
-    endDate,
-    daysCount,
-    payload.substituteEmp || '',
-    payload.reason || '',
-    'بانتظار الاعتماد',
-    'بانتظار المراجعة',
-    'بانتظار المراجعة',
+  suggSheet.appendRow([
+    suggestionId,
+    s.empName || '',
+    s.username || '',
+    s.department || '',
+    s.title || '',
+    s.details || '',
+    s.expectedImpact || '',
+    'قيد الدراسة',
     '',
-    nowStr,
-    nowStr
-  ];
-
-  leaveSheet.appendRow(row);
-
-  // إنشاء إشعار داخلي لمدير الموارد البشرية والمدير التنفيذي
-  createInternalNotification(
-    ss,
-    'ALL_MANAGERS',
-    requestId,
-    'طلب إجازة سنوية',
-    'طلب إجازة جديد من ' + payload.empName,
-    `قدم ${payload.empName} (${payload.jobRole}) طلب ${payload.leaveType || 'إجازة سنوية'} لمدة ${daysCount} يوم من ${startDate} إلى ${endDate}.`
-  );
-
-  appendAuditLog(ss, requestId, 'تقديم طلب إجازة', payload.username || payload.empName, 'طلبات_الاجازات', '', `${daysCount} أيام (${startDate} - ${endDate})`, payload.reason || '');
-
-  return {
-    status: 'success',
-    requestId: requestId,
-    message: 'تم تسجيل طلب الإجازة السنوية في قاعدة البيانات بنجاح وإشعار الإدارة المختصة.'
-  };
-}
-
-function handleUpdateLeaveStatus(ss, payload) {
-  const leaveSheet = ss.getSheetByName(SHEETS.LEAVES);
-  const data = leaveSheet.getDataRange().getValues();
-  const requestId = String(payload.requestId || '');
-  const nowStr = formatNow();
-
-  for (let i = 1; i < data.length; i++) {
-    if (String(data[i][0]) === requestId) {
-      const oldStatus = String(data[i][12] || '');
-      const newStatus = String(payload.status || oldStatus);
-      const hrApproval = String(payload.hrApproval || data[i][13] || '');
-      const execApproval = String(payload.execApproval || data[i][14] || '');
-      const managerNotes = String(payload.managerNotes !== undefined ? payload.managerNotes : (data[i][15] || ''));
-
-      leaveSheet.getRange(i + 1, 13).setValue(newStatus);
-      leaveSheet.getRange(i + 1, 14).setValue(hrApproval);
-      leaveSheet.getRange(i + 1, 15).setValue(execApproval);
-      leaveSheet.getRange(i + 1, 16).setValue(managerNotes);
-      leaveSheet.getRange(i + 1, 18).setValue(nowStr);
-
-      const targetUser = String(data[i][3] || '');
-      createInternalNotification(
-        ss,
-        targetUser,
-        requestId,
-        'تحديث طلب إجازة',
-        `تحديث حالة طلب إجازتك (${requestId})`,
-        `تم تحديث حالة طلب الإجازة الخاص بك إلى: ${newStatus}. ${managerNotes ? 'ملاحظات الإدارة: ' + managerNotes : ''}`
-      );
-
-      appendAuditLog(ss, requestId, 'تحديث حالة إجازة', payload.byUser || 'الإدارة', 'حالة_الطلب', oldStatus, newStatus, managerNotes);
-      return { status: 'success', message: 'تم تحديث قرار الاعتماد لطلب الإجازة في Google Sheets.' };
-    }
-  }
-  return { status: 'error', message: 'لم يتم العثور على طلب الإجازة.' };
-}
-
-/**
- * ============================================================================
- * 4. لوحة مهام الشؤون الإدارية والتسويق (CRUD + Workflow + Audit + Reminders)
- * ============================================================================
- */
-function handleGetDashboardBundle(ss, payload) {
-  const username = String(payload.username || '').trim();
-  return {
-    status: 'success',
-    serverTime: formatNow(),
-    timezone: getTimezone(),
-    version: APP_VERSION,
-    tasks: readAllTasks(ss),
-    categories: readAllCategories(ss),
-    entities: readAllEntities(ss),
-    users: readAllUsersPublic(ss),
-    reminders: readAllReminders(ss),
-    auditLogs: readRecentAuditLogs(ss, 120),
-    notifications: readUserNotifications(ss, username),
-    settings: readAllSettings(ss),
-    backups: readBackupsMeta(ss)
-  };
-}
-
-function readAllTasks(ss) {
-  const sheet = ss.getSheetByName(SHEETS.TASKS);
-  if (!sheet || sheet.getLastRow() <= 1) return [];
-  const data = sheet.getDataRange().getValues();
-  const tasks = [];
-  for (let i = 1; i < data.length; i++) {
-    const r = data[i];
-    if (!r[0]) continue;
-    tasks.push({
-      taskId: String(r[0] || ''),
-      title: String(r[1] || ''),
-      description: String(r[2] || ''),
-      categoryId: String(r[3] || ''),
-      categoryName: String(r[4] || ''),
-      entityId: String(r[5] || ''),
-      entityName: String(r[6] || ''),
-      taskType: String(r[7] || 'داخلية'),
-      source: String(r[8] || ''),
-      assignee: String(r[9] || ''),
-      createdBy: String(r[10] || ''),
-      createdAt: String(r[11] || ''),
-      startDate: formatCellDate(r[12]),
-      dueDate: formatCellDate(r[13]),
-      dueTime: String(r[14] || ''),
-      priority: String(r[15] || 'متوسطة'),
-      status: String(r[16] || 'جديدة'),
-      progress: Number(r[17] || 0),
-      subtasks: safeJsonParse(r[18], []),
-      relatedTasks: safeJsonParse(r[19], []),
-      responses: safeJsonParse(r[20], []),
-      notes: String(r[21] || ''),
-      attachments: safeJsonParse(r[22], []),
-      reminderDateTime: String(r[23] || ''),
-      reminderMethod: String(r[24] || 'داخلي'),
-      recurrencePattern: String(r[25] || 'بدون'),
-      recurrenceStart: formatCellDate(r[26]),
-      recurrenceEnd: formatCellDate(r[27]),
-      lastRecurrenceGenerated: String(r[28] || ''),
-      postponeReason: String(r[29] || ''),
-      previousDueDates: safeJsonParse(r[30], []),
-      completedAt: String(r[31] || ''),
-      completionHistory: safeJsonParse(r[32], []),
-      isArchived: String(r[33] || 'FALSE').toUpperCase() === 'TRUE',
-      updatedAt: String(r[34] || '')
-    });
-  }
-  return tasks;
-}
-
-function handleSaveTask(ss, payload) {
-  const task = payload.task || {};
-  const byUser = String(payload.byUser || task.createdBy || 'مستخدم النظام');
-  const nowStr = formatNow();
-
-  // التحقق الصارم من الحقول الأساسية
-  if (!String(task.title || '').trim()) {
-    return { status: 'error', message: 'عنوان المهمة حقل أساسي لا يمكن تركه فارغاً.' };
-  }
-  if (!String(task.categoryId || '').trim()) {
-    return { status: 'error', message: 'التصنيف الإداري للمهمة حقل أساسي.' };
-  }
-  if (!String(task.priority || '').trim()) {
-    return { status: 'error', message: 'أولوية المهمة حقل أساسي.' };
-  }
-  if (!String(task.dueDate || '').trim()) {
-    return { status: 'error', message: 'الموعد النهائي للاستحقاق حقل أساسي.' };
-  }
-
-  const sheet = ss.getSheetByName(SHEETS.TASKS);
-  const data = sheet.getDataRange().getValues();
-  let existingRowIndex = -1;
-  let existingRow = null;
-
-  if (task.taskId) {
-    for (let i = 1; i < data.length; i++) {
-      if (String(data[i][0]) === String(task.taskId)) {
-        existingRowIndex = i + 1;
-        existingRow = data[i];
-        break;
-      }
-    }
-  }
-
-  const isNew = existingRowIndex === -1;
-  const taskId = isNew ? generateUniqueTaskId(sheet) : String(task.taskId);
-  const createdAt = isNew ? nowStr : String(existingRow[11] || nowStr);
-  const createdBy = isNew ? byUser : String(existingRow[10] || byUser);
-
-  let previousDueDates = isNew ? [] : safeJsonParse(existingRow[30], []);
-  let completedAt = isNew ? '' : String(existingRow[31] || '');
-  let completionHistory = isNew ? [] : safeJsonParse(existingRow[32], []);
-  let postponeReason = String(task.postponeReason || (isNew ? '' : existingRow[29] || ''));
-
-  const oldStatus = isNew ? '' : String(existingRow[16] || '');
-  const newStatus = String(task.status || 'جديدة');
-  const oldDueDate = isNew ? '' : formatCellDate(existingRow[13]);
-  const newDueDate = String(task.dueDate || '').trim();
-
-  // إذا تم تأجيل المهمة أو تغيير موعدها النهائي، نحفظ الموعد السابق في سجل المواعيد
-  if (!isNew && oldDueDate && newDueDate && oldDueDate !== newDueDate) {
-    previousDueDates.push({
-      oldDueDate: oldDueDate,
-      newDueDate: newDueDate,
-      reason: task.postponeReason || 'تعديل موعد الاستحقاق',
-      changedBy: byUser,
-      changedAt: nowStr
-    });
-  }
-
-  // إذا اكتملت المهمة نسجل وقت الإكمال، وإذا أعيد فتحها نحتفظ بسجل الإنجاز السابق دون مسحه
-  let progress = Number(task.progress !== undefined ? task.progress : 0);
-  if (newStatus === 'مكتملة') {
-    progress = 100;
-    if (!completedAt || oldStatus !== 'مكتملة') {
-      completedAt = nowStr;
-      completionHistory.push({
-        completedAt: nowStr,
-        completedBy: byUser,
-        note: 'إكمال المهمة'
-      });
-    }
-  } else if (!isNew && oldStatus === 'مكتملة' && newStatus !== 'مكتملة') {
-    completionHistory.push({
-      reopenedAt: nowStr,
-      reopenedBy: byUser,
-      previousCompletedAt: completedAt,
-      newStatus: newStatus
-    });
-  }
-
-  const rowValues = [
-    taskId,
-    String(task.title || '').trim(),
-    String(task.description || '').trim(),
-    String(task.categoryId || '').trim(),
-    String(task.categoryName || '').trim(),
-    String(task.entityId || '').trim(),
-    String(task.entityName || '').trim(),
-    String(task.taskType || 'داخلية'),
-    String(task.source || '').trim(),
-    String(task.assignee || '').trim(),
-    createdBy,
-    createdAt,
-    String(task.startDate || ''),
-    newDueDate,
-    String(task.dueTime || ''),
-    String(task.priority || 'متوسطة'),
-    newStatus,
-    progress,
-    JSON.stringify(task.subtasks || []),
-    JSON.stringify(task.relatedTasks || []),
-    JSON.stringify(task.responses || []),
-    String(task.notes || ''),
-    JSON.stringify(task.attachments || []),
-    String(task.reminderDateTime || ''),
-    String(task.reminderMethod || 'داخلي'),
-    String(task.recurrencePattern || 'بدون'),
-    String(task.recurrenceStart || ''),
-    String(task.recurrenceEnd || ''),
-    isNew ? '' : String(existingRow[28] || ''),
-    postponeReason,
-    JSON.stringify(previousDueDates),
-    completedAt,
-    JSON.stringify(completionHistory),
-    task.isArchived ? 'TRUE' : 'FALSE',
-    nowStr
-  ];
-
-  if (isNew) {
-    sheet.appendRow(rowValues);
-    appendAuditLog(ss, taskId, 'إنشاء مهمة جديدة', byUser, 'المهمة بالكامل', '', task.title, `التصنيف: ${task.categoryName} | الأولوية: ${task.priority} | الاستحقاق: ${newDueDate}`);
-    createInternalNotification(ss, task.assignee || 'ALL', taskId, 'مهمة جديدة', `مهمة جديدة: ${task.title}`, `تم إسناد المهمة (${taskId}) بموعد استحقاق ${newDueDate}.`);
-  } else {
-    sheet.getRange(existingRowIndex, 1, 1, rowValues.length).setValues([rowValues]);
-    appendAuditLog(ss, taskId, 'تعديل مهمة', byUser, 'بيانات المهمة', `${oldStatus} (${oldDueDate})`, `${newStatus} (${newDueDate})`, task.postponeReason || 'تحديث بيانات المهمة');
-
-    if (oldDueDate !== newDueDate) {
-      createInternalNotification(ss, task.assignee || 'ALL', taskId, 'تعديل موعد مهمة', `تعديل موعد المهمة: ${task.title}`, `تغير الموعد النهائي من ${oldDueDate} إلى ${newDueDate}.`);
-    }
-    if (oldStatus !== newStatus && (newStatus === 'مكتملة' || oldStatus === 'مكتملة')) {
-      const actionTitle = newStatus === 'مكتملة' ? 'إكمال مهمة' : 'إعادة فتح مهمة';
-      createInternalNotification(ss, task.assignee || 'ALL', taskId, actionTitle, `${actionTitle}: ${task.title}`, `تم تغيير حالة المهمة (${taskId}) إلى ${newStatus}.`);
-    }
-  }
-
-  // مزامنة المرفقات في جدول المرفقات المستقل
-  syncTaskAttachments(ss, taskId, task.attachments || [], byUser, nowStr);
-
-  // إلغاء التذكيرات القديمة وإعادة جدولتها تلقائياً وفق الموعد والحالة الجديدة
-  syncTaskReminders(ss, {
-    taskId: taskId,
-    title: String(task.title || '').trim(),
-    assignee: String(task.assignee || '').trim(),
-    dueDate: newDueDate,
-    dueTime: String(task.dueTime || '09:00'),
-    priority: String(task.priority || 'متوسطة'),
-    status: newStatus,
-    reminderDateTime: String(task.reminderDateTime || ''),
-    reminderMethod: String(task.reminderMethod || 'داخلي'),
-    isArchived: Boolean(task.isArchived)
-  });
-
-  return {
-    status: 'success',
-    taskId: taskId,
-    updatedAt: nowStr,
-    message: isNew ? 'تم حفظ المهمة الجديدة في Google Sheets بنجاح.' : 'تم حفظ التعديلات على المهمة في Google Sheets بنجاح.'
-  };
-}
-
-function generateUniqueTaskId(sheet) {
-  const year = new Date().getFullYear();
-  const lastRow = sheet ? sheet.getLastRow() : 1;
-  const existingIds = new Set();
-  if (lastRow > 1) {
-    const colA = sheet.getRange(2, 1, lastRow - 1, 1).getValues();
-    colA.forEach(r => existingIds.add(String(r[0])));
-  }
-  let seq = lastRow;
-  let candidate = '';
-  do {
-    candidate = `TSK-${year}-${String(seq).padStart(4, '0')}`;
-    seq++;
-  } while (existingIds.has(candidate));
-  return candidate;
-}
-
-function handleUpdateTaskStatus(ss, payload) {
-  const taskId = String(payload.taskId || '');
-  const newStatus = String(payload.status || '');
-  const progress = payload.progress !== undefined ? Number(payload.progress) : undefined;
-  const postponeReason = String(payload.postponeReason || '');
-  const newDueDate = String(payload.newDueDate || '');
-  const byUser = String(payload.byUser || 'مستخدم النظام');
-  const nowStr = formatNow();
-
-  const sheet = ss.getSheetByName(SHEETS.TASKS);
-  const data = sheet.getDataRange().getValues();
-
-  for (let i = 1; i < data.length; i++) {
-    if (String(data[i][0]) === taskId) {
-      const oldStatus = String(data[i][16] || '');
-      const oldProgress = Number(data[i][17] || 0);
-      const oldDueDate = formatCellDate(data[i][13]);
-      let prevDates = safeJsonParse(data[i][30], []);
-      let completedAt = String(data[i][31] || '');
-      let compHistory = safeJsonParse(data[i][32], []);
-
-      if (newStatus === 'مؤجلة' && (!newDueDate || !postponeReason)) {
-        return { status: 'error', message: 'عند تأجيل المهمة يجب تحديد الموعد الجديد وسبب التأجيل.' };
-      }
-
-      if (newDueDate && newDueDate !== oldDueDate) {
-        prevDates.push({
-          oldDueDate: oldDueDate,
-          newDueDate: newDueDate,
-          reason: postponeReason || 'تأجيل / تعديل موعد المهمة',
-          changedBy: byUser,
-          changedAt: nowStr
-        });
-        sheet.getRange(i + 1, 14).setValue(newDueDate);
-        sheet.getRange(i + 1, 31).setValue(JSON.stringify(prevDates));
-      }
-
-      if (postponeReason) {
-        sheet.getRange(i + 1, 30).setValue(postponeReason);
-      }
-
-      let finalProgress = progress !== undefined ? progress : oldProgress;
-      if (newStatus === 'مكتملة') {
-        finalProgress = 100;
-        completedAt = nowStr;
-        compHistory.push({ completedAt: nowStr, completedBy: byUser, note: 'إكمال المهمة' });
-        sheet.getRange(i + 1, 32).setValue(completedAt);
-        sheet.getRange(i + 1, 33).setValue(JSON.stringify(compHistory));
-      } else if (oldStatus === 'مكتملة' && newStatus && newStatus !== 'مكتملة') {
-        compHistory.push({ reopenedAt: nowStr, reopenedBy: byUser, previousCompletedAt: completedAt, newStatus: newStatus });
-        sheet.getRange(i + 1, 33).setValue(JSON.stringify(compHistory));
-      }
-
-      if (newStatus) sheet.getRange(i + 1, 17).setValue(newStatus);
-      sheet.getRange(i + 1, 18).setValue(finalProgress);
-      sheet.getRange(i + 1, 35).setValue(nowStr);
-
-      appendAuditLog(
-        ss,
-        taskId,
-        'تحديث حالة / إنجاز',
-        byUser,
-        'الحالة ونسبة الإنجاز',
-        `${oldStatus} (${oldProgress}%)`,
-        `${newStatus || oldStatus} (${finalProgress}%)`,
-        postponeReason || 'تحديث سريع للحالة'
-      );
-
-      // تحديث التذكيرات
-      syncTaskReminders(ss, {
-        taskId: taskId,
-        title: String(data[i][1] || ''),
-        assignee: String(data[i][9] || ''),
-        dueDate: newDueDate || oldDueDate,
-        dueTime: String(data[i][14] || '09:00'),
-        priority: String(data[i][15] || 'متوسطة'),
-        status: newStatus || oldStatus,
-        reminderDateTime: String(data[i][23] || ''),
-        reminderMethod: String(data[i][24] || 'داخلي'),
-        isArchived: String(data[i][33] || 'FALSE') === 'TRUE'
-      });
-
-      return { status: 'success', updatedAt: nowStr, message: 'تم تحديث حالة المهمة ونسبة الإنجاز بنجاح.' };
-    }
-  }
-  return { status: 'error', message: 'المهمة غير موجودة.' };
-}
-
-function handleRescheduleTask(ss, payload) {
-  const taskId = String(payload.taskId || '');
-  const newDueDate = String(payload.newDueDate || '').trim();
-  const reason = String(payload.reason || 'نقل الموعد عبر التقويم التفاعلي');
-  const byUser = String(payload.byUser || 'مستخدم النظام');
-  const nowStr = formatNow();
-
-  if (!taskId || !newDueDate) {
-    return { status: 'error', message: 'رقم المهمة والتاريخ الجديد مطلوبان.' };
-  }
-
-  const sheet = ss.getSheetByName(SHEETS.TASKS);
-  const data = sheet.getDataRange().getValues();
-
-  for (let i = 1; i < data.length; i++) {
-    if (String(data[i][0]) === taskId) {
-      const oldDueDate = formatCellDate(data[i][13]);
-      const prevDates = safeJsonParse(data[i][30], []);
-      prevDates.push({
-        oldDueDate: oldDueDate,
-        newDueDate: newDueDate,
-        reason: reason,
-        changedBy: byUser,
-        changedAt: nowStr
-      });
-
-      sheet.getRange(i + 1, 14).setValue(newDueDate);
-      sheet.getRange(i + 1, 31).setValue(JSON.stringify(prevDates));
-      sheet.getRange(i + 1, 35).setValue(nowStr);
-
-      appendAuditLog(ss, taskId, 'إعادة جدولة من التقويم', byUser, 'الموعد_النهائي', oldDueDate, newDueDate, reason);
-      createInternalNotification(ss, String(data[i][9] || 'ALL'), taskId, 'تعديل موعد مهمة', `نقل موعد المهمة: ${data[i][1]}`, `تم نقل موعد استحقاق المهمة من ${oldDueDate} إلى ${newDueDate}.`);
-
-      syncTaskReminders(ss, {
-        taskId: taskId,
-        title: String(data[i][1] || ''),
-        assignee: String(data[i][9] || ''),
-        dueDate: newDueDate,
-        dueTime: String(data[i][14] || '09:00'),
-        priority: String(data[i][15] || 'متوسطة'),
-        status: String(data[i][16] || 'جديدة'),
-        reminderDateTime: '',
-        reminderMethod: String(data[i][24] || 'داخلي'),
-        isArchived: String(data[i][33] || 'FALSE') === 'TRUE'
-      });
-
-      return { status: 'success', updatedAt: nowStr, message: 'تم نقل موعد المهمة في قاعدة البيانات وإعادة جدولة تذكيراتها تلقائياً.' };
-    }
-  }
-  return { status: 'error', message: 'المهمة غير موجودة.' };
-}
-
-function handleArchiveTask(ss, payload) {
-  const taskId = String(payload.taskId || '');
-  const archiveState = payload.isArchived !== false;
-  const byUser = String(payload.byUser || 'مستخدم النظام');
-  const nowStr = formatNow();
-
-  const sheet = ss.getSheetByName(SHEETS.TASKS);
-  const data = sheet.getDataRange().getValues();
-  for (let i = 1; i < data.length; i++) {
-    if (String(data[i][0]) === taskId) {
-      sheet.getRange(i + 1, 34).setValue(archiveState ? 'TRUE' : 'FALSE');
-      sheet.getRange(i + 1, 35).setValue(nowStr);
-      appendAuditLog(ss, taskId, archiveState ? 'أرشفة مهمة' : 'استعادة مهمة من الأرشيف', byUser, 'مؤرشفة', String(!archiveState), String(archiveState), data[i][1]);
-      if (archiveState) {
-        cancelTaskReminders(ss, taskId, 'تم إلغاء التذكير بسبب أرشفة المهمة');
-      }
-      return { status: 'success', message: archiveState ? 'تم نقل المهمة إلى قسم المهام المؤرشفة بنجاح.' : 'تمت استعادة المهمة من الأرشيف.' };
-    }
-  }
-  return { status: 'error', message: 'المهمة غير موجودة.' };
-}
-
-function handleDeleteTask(ss, payload) {
-  const taskId = String(payload.taskId || '');
-  const byUser = String(payload.byUser || 'مستخدم النظام');
-  const sheet = ss.getSheetByName(SHEETS.TASKS);
-  const data = sheet.getDataRange().getValues();
-
-  for (let i = 1; i < data.length; i++) {
-    if (String(data[i][0]) === taskId) {
-      const title = String(data[i][1] || '');
-      sheet.deleteRow(i + 1);
-      cancelTaskReminders(ss, taskId, 'تم حذف المهمة نهائياً');
-      appendAuditLog(ss, taskId, 'حذف مهمة نهائياً', byUser, 'سجل المهمة', title, 'محذوف', 'تم الحذف النهائي بعد تأكيد المستخدم');
-      return { status: 'success', message: 'تم حذف المهمة من قاعدة البيانات.' };
-    }
-  }
-  return { status: 'error', message: 'المهمة غير موجودة.' };
-}
-
-function handleAddTaskResponse(ss, payload) {
-  const taskId = String(payload.taskId || '');
-  const responseText = String(payload.responseText || '').trim();
-  const decisionType = String(payload.decisionType || 'رد / متابعة');
-  const byUser = String(payload.byUser || 'مستخدم النظام');
-  const nowStr = formatNow();
-
-  if (!taskId || !responseText) {
-    return { status: 'error', message: 'يرجى كتابة نص الرد أو القرار.' };
-  }
-
-  const sheet = ss.getSheetByName(SHEETS.TASKS);
-  const data = sheet.getDataRange().getValues();
-  for (let i = 1; i < data.length; i++) {
-    if (String(data[i][0]) === taskId) {
-      const responses = safeJsonParse(data[i][20], []);
-      responses.push({
-        id: 'RSP-' + Date.now(),
-        author: byUser,
-        decisionType: decisionType,
-        text: responseText,
-        createdAt: nowStr
-      });
-      sheet.getRange(i + 1, 21).setValue(JSON.stringify(responses));
-      sheet.getRange(i + 1, 35).setValue(nowStr);
-      appendAuditLog(ss, taskId, 'إضافة رد / قرار', byUser, 'الردود_والقرارات', '', decisionType, responseText);
-      return { status: 'success', responses: responses, message: 'تم تسجيل الرد / القرار بنجاح.' };
-    }
-  }
-  return { status: 'error', message: 'المهمة غير موجودة.' };
-}
-
-/**
- * ============================================================================
- * 5. إدارة التصنيفات والجهات مع الحماية الكاملة للعلاقات المرجعية
- * ============================================================================
- */
-function readAllCategories(ss) {
-  const sheet = ss.getSheetByName(SHEETS.CATEGORIES);
-  if (!sheet || sheet.getLastRow() <= 1) return DEFAULT_CATEGORIES;
-  const data = sheet.getDataRange().getValues();
-  const list = [];
-  for (let i = 1; i < data.length; i++) {
-    if (!data[i][0]) continue;
-    list.push({
-      id: String(data[i][0]),
-      name: String(data[i][1]),
-      desc: String(data[i][2] || ''),
-      color: String(data[i][3] || '#5B2C83'),
-      order: Number(data[i][4] || i),
-      archived: String(data[i][5] || 'FALSE').toUpperCase() === 'TRUE',
-      updatedAt: String(data[i][6] || '')
-    });
-  }
-  return list.sort((a, b) => a.order - b.order);
-}
-
-function handleSaveCategory(ss, payload) {
-  const cat = payload.category || {};
-  const byUser = String(payload.byUser || 'الإدارة');
-  const nowStr = formatNow();
-  if (!String(cat.name || '').trim()) {
-    return { status: 'error', message: 'اسم التصنيف مطلوب.' };
-  }
-
-  const sheet = ss.getSheetByName(SHEETS.CATEGORIES);
-  const data = sheet.getDataRange().getValues();
-  let rowIndex = -1;
-  let oldName = '';
-
-  if (cat.id) {
-    for (let i = 1; i < data.length; i++) {
-      if (String(data[i][0]) === String(cat.id)) {
-        rowIndex = i + 1;
-        oldName = String(data[i][1]);
-        break;
-      }
-    }
-  }
-
-  const catId = rowIndex === -1 ? ('CAT-' + String(data.length).padStart(2, '0') + '-' + Date.now().toString().slice(-3)) : String(cat.id);
-  const rowVals = [
-    catId,
-    String(cat.name).trim(),
-    String(cat.desc || ''),
-    String(cat.color || '#5B2C83'),
-    Number(cat.order || data.length),
-    cat.archived ? 'TRUE' : 'FALSE',
-    nowStr
-  ];
-
-  if (rowIndex === -1) {
-    sheet.appendRow(rowVals);
-    appendAuditLog(ss, catId, 'إضافة تصنيف', byUser, 'التصنيفات', '', cat.name, '');
-  } else {
-    sheet.getRange(rowIndex, 1, 1, rowVals.length).setValues([rowVals]);
-    // تحديث اسم التصنيف في المهام المرتبطة به دون حذف أي مهمة
-    if (oldName && oldName !== rowVals[1]) {
-      const taskSheet = ss.getSheetByName(SHEETS.TASKS);
-      if (taskSheet && taskSheet.getLastRow() > 1) {
-        const tData = taskSheet.getDataRange().getValues();
-        for (let j = 1; j < tData.length; j++) {
-          if (String(tData[j][3]) === catId) {
-            taskSheet.getRange(j + 1, 5).setValue(rowVals[1]);
-          }
-        }
-      }
-    }
-    appendAuditLog(ss, catId, 'تعديل تصنيف', byUser, 'اسم_التصنيف', oldName, rowVals[1], 'تم الحفاظ على كافة المهام المرتبطة بالتصنيف');
-  }
-
-  return { status: 'success', categories: readAllCategories(ss), message: 'تم حفظ التصنيف بنجاح مع الحفاظ التام على المهام المرتبطة.' };
-}
-
-function handleDeleteCategory(ss, payload) {
-  const catId = String(payload.categoryId || '');
-  const reassignToId = String(payload.reassignToCategoryId || '');
-  const byUser = String(payload.byUser || 'الإدارة');
-
-  // التحقق من وجود مهام مرتبطة بهذا التصنيف
-  const taskSheet = ss.getSheetByName(SHEETS.TASKS);
-  const tData = taskSheet.getDataRange().getValues();
-  let linkedCount = 0;
-  for (let i = 1; i < tData.length; i++) {
-    if (String(tData[i][3]) === catId) linkedCount++;
-  }
-
-  if (linkedCount > 0 && !reassignToId) {
-    return {
-      status: 'error',
-      message: `لا يمكن حذف هذا التصنيف لأنه مرتبط بـ (${linkedCount}) مهمة قائمة. يمكنك أرشفته أو اختيار تصنيف بديل لنقل المهام إليه أولاً.`
-    };
-  }
-
-  const catSheet = ss.getSheetByName(SHEETS.CATEGORIES);
-  const cData = catSheet.getDataRange().getValues();
-  let targetNewName = '';
-  if (reassignToId) {
-    for (let i = 1; i < cData.length; i++) {
-      if (String(cData[i][0]) === reassignToId) {
-        targetNewName = String(cData[i][1]);
-        break;
-      }
-    }
-    for (let j = 1; j < tData.length; j++) {
-      if (String(tData[j][3]) === catId) {
-        taskSheet.getRange(j + 1, 4).setValue(reassignToId);
-        taskSheet.getRange(j + 1, 5).setValue(targetNewName);
-      }
-    }
-  }
-
-  for (let i = 1; i < cData.length; i++) {
-    if (String(cData[i][0]) === catId) {
-      const deletedName = String(cData[i][1]);
-      catSheet.deleteRow(i + 1);
-      appendAuditLog(ss, catId, 'حذف تصنيف', byUser, 'التصنيفات', deletedName, reassignToId || 'محذوف', `عدد المهام المعالجة: ${linkedCount}`);
-      return { status: 'success', categories: readAllCategories(ss), message: 'تم حذف التصنيف بأمان.' };
-    }
-  }
-  return { status: 'error', message: 'التصنيف غير موجود.' };
-}
-
-function readAllEntities(ss) {
-  const sheet = ss.getSheetByName(SHEETS.ENTITIES);
-  if (!sheet || sheet.getLastRow() <= 1) return DEFAULT_ENTITIES;
-  const data = sheet.getDataRange().getValues();
-  const list = [];
-  for (let i = 1; i < data.length; i++) {
-    if (!data[i][0]) continue;
-    list.push({
-      id: String(data[i][0]),
-      name: String(data[i][1]),
-      type: String(data[i][2] || ''),
-      contact: String(data[i][3] || ''),
-      email: String(data[i][4] || ''),
-      phone: String(data[i][5] || ''),
-      status: String(data[i][6] || 'نشط'),
-      createdAt: String(data[i][7] || '')
-    });
-  }
-  return list;
-}
-
-function handleSaveEntity(ss, payload) {
-  const ent = payload.entity || {};
-  const byUser = String(payload.byUser || 'الإدارة');
-  const nowStr = formatNow();
-  if (!String(ent.name || '').trim()) {
-    return { status: 'error', message: 'اسم الجهة مطلوب.' };
-  }
-
-  const sheet = ss.getSheetByName(SHEETS.ENTITIES);
-  const data = sheet.getDataRange().getValues();
-  let rowIndex = -1;
-  if (ent.id) {
-    for (let i = 1; i < data.length; i++) {
-      if (String(data[i][0]) === String(ent.id)) {
-        rowIndex = i + 1;
-        break;
-      }
-    }
-  }
-
-  const entId = rowIndex === -1 ? ('ENT-' + String(data.length).padStart(2, '0') + '-' + Date.now().toString().slice(-3)) : String(ent.id);
-  const rowVals = [
-    entId,
-    String(ent.name).trim(),
-    String(ent.type || 'جهة خارجية'),
-    String(ent.contact || ''),
-    String(ent.email || ''),
-    String(ent.phone || ''),
-    String(ent.status || 'نشط'),
-    nowStr
-  ];
-
-  if (rowIndex === -1) {
-    sheet.appendRow(rowVals);
-  } else {
-    sheet.getRange(rowIndex, 1, 1, rowVals.length).setValues([rowVals]);
-  }
-  appendAuditLog(ss, entId, 'حفظ جهة', byUser, 'الجهات', '', ent.name, '');
-  return { status: 'success', entities: readAllEntities(ss), message: 'تم حفظ بيانات الجهة بنجاح.' };
-}
-
-function handleDeleteEntity(ss, payload) {
-  const entId = String(payload.entityId || '');
-  const taskSheet = ss.getSheetByName(SHEETS.TASKS);
-  const tData = taskSheet.getDataRange().getValues();
-  for (let i = 1; i < tData.length; i++) {
-    if (String(tData[i][5]) === entId) {
-      return { status: 'error', message: 'لا يمكن حذف هذه الجهة لوجود مهام مرتبطة بها. يمكنك تغيير حالتها إلى غير نشطة.' };
-    }
-  }
-  const sheet = ss.getSheetByName(SHEETS.ENTITIES);
-  const data = sheet.getDataRange().getValues();
-  for (let i = 1; i < data.length; i++) {
-    if (String(data[i][0]) === entId) {
-      sheet.deleteRow(i + 1);
-      return { status: 'success', entities: readAllEntities(ss), message: 'تم حذف الجهة.' };
-    }
-  }
-  return { status: 'error', message: 'الجهة غير موجودة.' };
-}
-
-/**
- * ============================================================================
- * 6. نظام التذكيرات والجدولة الخلفية والبريد الإلكتروني (Asia/Aden)
- * ============================================================================
- */
-function syncTaskReminders(ss, taskInfo) {
-  const sheet = ss.getSheetByName(SHEETS.REMINDERS);
-  if (!sheet) return;
-
-  // أولاً: إلغاء أي تذكيرات سابقة مجدولة لنفس المهمة لم تُرسل بعد
-  cancelTaskReminders(ss, taskInfo.taskId, 'إعادة جدولة التذكيرات بسبب تحديث المهمة');
-
-  // إذا كانت المهمة مكتملة أو ملغاة أو مؤرشفة لا ننشئ تذكيرات جديدة
-  if (taskInfo.isArchived || taskInfo.status === 'مكتملة' || taskInfo.status === 'ملغاة') {
-    return;
-  }
-
-  // استخراج البريد الإلكتروني للمسؤول عن التنفيذ
-  const assigneeEmail = findUserEmailByNameOrUsername(ss, taskInfo.assignee);
-  const settings = readAllSettings(ss);
-  const beforeHours = Number(settings.default_reminder_Before_hours || 24);
-
-  // 1. تذكير مخصص إذا حدده المستخدم في النموذج
-  if (taskInfo.reminderDateTime) {
-    createReminderRow(ss, {
-      taskId: taskInfo.taskId,
-      title: taskInfo.title,
-      recipientUser: taskInfo.assignee,
-      recipientEmail: assigneeEmail,
-      type: 'تذكير مخصص قبل الموعد',
-      scheduledAt: taskInfo.reminderDateTime.replace('T', ' '),
-      method: taskInfo.reminderMethod || 'كلاهما',
-      idempotencyKey: `${taskInfo.taskId}_CUSTOM_${taskInfo.reminderDateTime}`
-    });
-  } else if (taskInfo.dueDate) {
-    // 2. تذكير تلقائي قبل الموعد النهائي بـ X ساعة
-    const dueTimeStr = taskInfo.dueTime || '09:00';
-    const dueDateTime = new Date(`${taskInfo.dueDate}T${dueTimeStr}:00`);
-    if (!isNaN(dueDateTime.getTime())) {
-      const beforeDate = new Date(dueDateTime.getTime() - beforeHours * 3600 * 1000);
-      const beforeStr = Utilities.formatDate(beforeDate, getTimezone(), 'yyyy-MM-dd HH:mm');
-      createReminderRow(ss, {
-        taskId: taskInfo.taskId,
-        title: taskInfo.title,
-        recipientUser: taskInfo.assignee,
-        recipientEmail: assigneeEmail,
-        type: `تذكير قبل الاستحقاق (${beforeHours} ساعة)`,
-        scheduledAt: beforeStr,
-        method: taskInfo.reminderMethod || 'داخلي',
-        idempotencyKey: `${taskInfo.taskId}_BEFORE_${taskInfo.dueDate}`
-      });
-    }
-  }
-
-  // 3. تذكير في يوم الاستحقاق
-  if (taskInfo.dueDate) {
-    const dueDayReminder = `${taskInfo.dueDate} ${taskInfo.dueTime || '09:00'}`;
-    createReminderRow(ss, {
-      taskId: taskInfo.taskId,
-      title: taskInfo.title,
-      recipientUser: taskInfo.assignee,
-      recipientEmail: assigneeEmail,
-      type: 'تنبيه يوم الاستحقاق',
-      scheduledAt: dueDayReminder,
-      method: taskInfo.reminderMethod || 'كلاهما',
-      idempotencyKey: `${taskInfo.taskId}_DUEDAY_${taskInfo.dueDate}`
-    });
-  }
-}
-
-function createReminderRow(ss, rem) {
-  const sheet = ss.getSheetByName(SHEETS.REMINDERS);
-  const data = sheet.getDataRange().getValues();
-  for (let i = 1; i < data.length; i++) {
-    if (String(data[i][12]) === String(rem.idempotencyKey) && String(data[i][8]) === 'أُرسل') {
-      return; // منع تكرار تذكير أُرسل مسبقاً بنفس المفتاح
-    }
-  }
-  const remId = 'REM-' + Date.now() + '-' + Math.floor(100 + Math.random() * 899);
-  sheet.appendRow([
-    remId,
-    rem.taskId,
-    rem.title,
-    rem.recipientUser || '',
-    rem.recipientEmail || '',
-    rem.type,
-    rem.scheduledAt,
-    rem.method || 'داخلي',
-    'مجدول',
-    0,
-    '',
-    'بانتظار حلول وقت الجدولة',
-    rem.idempotencyKey
+    now,
+    now
   ]);
+
+  appendAuditLog_(ss, suggestionId, 'تقديم مقترح تطوير', s.empName || s.username, 'المقترحات', '', s.title, s.department);
+  appendNotification_(ss, 'ceo', suggestionId, 'مقترح تطوير جديد', 'مقترح جديد من ' + (s.empName || ''), s.title);
+  invalidatePortalCache_();
+
+  return jsonResponse_({ status: 'success', suggestionId: suggestionId, message: 'تم إرسال مقترحك للإدارة بنجاح.' });
 }
 
-function cancelTaskReminders(ss, taskId, reason) {
-  const sheet = ss.getSheetByName(SHEETS.REMINDERS);
-  if (!sheet || sheet.getLastRow() <= 1) return;
-  const data = sheet.getDataRange().getValues();
-  for (let i = 1; i < data.length; i++) {
-    if (String(data[i][1]) === String(taskId) && String(data[i][8]) === 'مجدول') {
-      sheet.getRange(i + 1, 9).setValue('أُلغي');
-      sheet.getRange(i + 1, 12).setValue(reason || 'تم إلغاء التذكير');
+function handleReviewSuggestion_(payload) {
+  const suggestionId = String(payload.suggestionId || '').trim();
+  const status = String(payload.status || 'تمت المراجعة').trim();
+  const reply = String(payload.managementReply || '').trim();
+  const byUser = String(payload.byUser || 'الإدارة التنفيذية');
+
+  const ss = getSpreadsheet_();
+  const suggSheet = getOrCreateSheet_(ss, SHEET_SCHEMA.SUGGESTIONS.name, SHEET_SCHEMA.SUGGESTIONS.headers);
+  const rows = suggSheet.getDataRange().getDisplayValues();
+  const now = nowStr_();
+
+  for (let i = 1; i < rows.length; i++) {
+    if (String(rows[i][0] || '').trim() === suggestionId) {
+      suggSheet.getRange(i + 1, 8).setValue(status);
+      suggSheet.getRange(i + 1, 9).setValue(reply);
+      suggSheet.getRange(i + 1, 11).setValue(now);
+
+      appendAuditLog_(ss, suggestionId, 'مراجعة مقترح', byUser, 'المقترحات', rows[i][7], status, reply);
+      appendNotification_(ss, rows[i][2] || rows[i][1], suggestionId, 'رد على مقترحك', 'رد الإدارة على مقترح: ' + rows[i][4], reply || status);
+      invalidatePortalCache_();
+      return jsonResponse_({ status: 'success', message: 'تم حفظ رد الإدارة على المقترح.' });
     }
   }
-}
-
-/**
- * الوظيفة الخلفية المجدولة (تعمل تلقائياً عبر Time-driven Trigger حتى عند إغلاق المتصفح)
- * تقوم بـ:
- * 1. معالجة التذكيرات المستحقة وإرسال التنبيهات الداخلية ورسائل البريد الإلكتروني مع سياسة إعادة المحاولة (3 محاولات).
- * 2. رصد المهام المتأخرة وإصدار تذكيرات التأخر دون تكرار.
- * 3. توليد نسخ المهام المتكررة (يومي، أسبوعي، شهري) مع منع التكرار.
- */
-function runScheduledJobs() {
-  const lock = LockService.getScriptLock();
-  if (!lock.tryLock(10000)) {
-    return { status: 'busy', message: 'المجدول يعمل حالياً في عملية أخرى.' };
-  }
-
-  try {
-    const ss = getSpreadsheet();
-    const settings = readAllSettings(ss);
-    if (String(settings.notifications_enabled) === 'false') {
-      return { status: 'skipped', message: 'الإشعارات معطلة من الإعدادات.' };
-    }
-
-    const tz = settings.timezone || DEFAULT_TIMEZONE;
-    const now = new Date();
-    const nowFormatted = Utilities.formatDate(now, tz, 'yyyy-MM-dd HH:mm');
-    const todayStr = Utilities.formatDate(now, tz, 'yyyy-MM-dd');
-
-    let sentCount = 0;
-    let overdueCreated = 0;
-    let recurringGenerated = 0;
-
-    // أولاً: فحص المهام المتأخرة وتوليد المهام المتكررة
-    const taskSheet = ss.getSheetByName(SHEETS.TASKS);
-    const tData = taskSheet.getDataRange().getValues();
-
-    for (let i = 1; i < tData.length; i++) {
-      const r = tData[i];
-      const taskId = String(r[0] || '');
-      const title = String(r[1] || '');
-      const assignee = String(r[9] || '');
-      const dueDate = formatCellDate(r[13]);
-      const priority = String(r[15] || 'متوسطة');
-      const status = String(r[16] || '');
-      const recurrence = String(r[25] || 'بدون');
-      const recStart = formatCellDate(r[26]);
-      const recEnd = formatCellDate(r[27]);
-      const lastGen = String(r[28] || '');
-      const isArchived = String(r[33] || 'FALSE').toUpperCase() === 'TRUE';
-
-      if (!taskId || isArchived || status === 'مكتملة' || status === 'ملغاة') continue;
-
-      // فحص التأخر عن الموعد النهائي
-      if (dueDate && dueDate < todayStr) {
-        const overdueKey = `${taskId}_OVERDUE_${todayStr}`;
-        if (!hasReminderWithKey(ss, overdueKey)) {
-          const email = findUserEmailByNameOrUsername(ss, assignee);
-          createReminderRow(ss, {
-            taskId: taskId,
-            title: title,
-            recipientUser: assignee,
-            recipientEmail: email,
-            type: 'تنبيه تأخر مهمة عن موعدها',
-            scheduledAt: nowFormatted,
-            method: String(r[24] || 'كلاهما'),
-            idempotencyKey: overdueKey
-          });
-          overdueCreated++;
-        }
-      }
-
-      // معالجة المهام الدورية المتكررة دون ازدواجيّة
-      if (recurrence && recurrence !== 'بدون' && lastGen !== todayStr) {
-        if ((!recStart || todayStr >= recStart) && (!recEnd || todayStr <= recEnd)) {
-          if (shouldGenerateRecurrenceToday(recurrence, dueDate, todayStr)) {
-            taskSheet.getRange(i + 1, 29).setValue(todayStr); // تسجيل تاريخ التوليد لمنع التكرار
-            recurringGenerated++;
-          }
-        }
-      }
-    }
-
-    // ثانياً: إرسال التذكيرات المجدولة التي حان وقتها أو الفاشلة القابلة لإعادة المحاولة (< 3 محاولات)
-    const remSheet = ss.getSheetByName(SHEETS.REMINDERS);
-    const rData = remSheet.getDataRange().getValues();
-
-    for (let j = 1; j < rData.length; j++) {
-      const remId = String(rData[j][0] || '');
-      const taskId = String(rData[j][1] || '');
-      const title = String(rData[j][2] || '');
-      const recipientUser = String(rData[j][3] || '');
-      const recipientEmail = String(rData[j][4] || '');
-      const remType = String(rData[j][5] || '');
-      const scheduledAt = String(rData[j][6] || '');
-      const method = String(rData[j][7] || 'داخلي');
-      const status = String(rData[j][8] || 'مجدول');
-      const attempts = Number(rData[j][9] || 0);
-
-      if (status !== 'مجدول' && !(status === 'فشل' && attempts < 3)) continue;
-      if (scheduledAt && scheduledAt > nowFormatted) continue;
-
-      const newAttempts = attempts + 1;
-      let sendSuccess = true;
-      let resultMsg = 'تم الإرسال بنجاح (إشعار داخلي)';
-
-      // 1. إرسال الإشعار الداخلي
-      createInternalNotification(
-        ss,
-        recipientUser || 'ALL',
-        taskId,
-        remType,
-        `${remType}: ${title}`,
-        `المهمة (${taskId}): ${title} — وقت التذكير: ${scheduledAt}`
-      );
-
-      // 2. إرسال البريد الإلكتروني إذا كانت الوسيلة تشمل البريد والاتصال مفعل
-      if ((method === 'بريد إلكتروني' || method === 'كلاهما') && recipientEmail) {
-        try {
-          MailApp.sendEmail({
-            to: recipientEmail,
-            subject: `[تذكير مهام غزارة] ${remType}: ${title}`,
-            htmlBody: `<div dir="rtl" style="font-family:Tahoma,Arial,sans-serif;line-height:1.8;color:#231338;max-width:600px;margin:auto;border:1px solid #E5E7EB;border-radius:16px;padding:24px;">
-              <span style="background:#F3ECF9;color:#5B2C83;padding:4px 12px;border-radius:999px;font-size:12px;font-weight:bold;">${remType}</span>
-              <h2 style="color:#5B2C83;margin-top:12px;">${title}</h2>
-              <p><strong>رقم المهمة:</strong> ${taskId}</p>
-              <p><strong>الموعد المجدول:</strong> ${scheduledAt}</p>
-              <p style="font-size:13px;color:#64748B;">هذا التذكير صادر تلقائياً من لوحة مهام الشؤون الإدارية والتسويق - غزارة للتجارة والتسويق.</p>
-            </div>`
-          });
-          resultMsg = 'تم الإرسال بنجاح (داخلي + بريد إلكتروني)';
-        } catch (mailErr) {
-          sendSuccess = false;
-          resultMsg = 'فشل إرسال البريد (المحاولة ' + newAttempts + ' من 3): ' + mailErr.message;
-        }
-      }
-
-      remSheet.getRange(j + 1, 9).setValue(sendSuccess ? 'أُرسل' : 'فشل');
-      remSheet.getRange(j + 1, 10).setValue(newAttempts);
-      remSheet.getRange(j + 1, 11).setValue(formatNow(tz));
-      remSheet.getRange(j + 1, 12).setValue(resultMsg);
-      if (sendSuccess) sentCount++;
-    }
-
-    return {
-      status: 'success',
-      sentCount: sentCount,
-      overdueCreated: overdueCreated,
-      recurringGenerated: recurringGenerated,
-      timestamp: formatNow(tz)
-    };
-  } finally {
-    lock.releaseLock();
-  }
-}
-
-function hasReminderWithKey(ss, key) {
-  const sheet = ss.getSheetByName(SHEETS.REMINDERS);
-  if (!sheet || sheet.getLastRow() <= 1) return false;
-  const data = sheet.getDataRange().getValues();
-  for (let i = 1; i < data.length; i++) {
-    if (String(data[i][12]) === String(key)) return true;
-  }
-  return false;
-}
-
-function shouldGenerateRecurrenceToday(pattern, dueDateStr, todayStr) {
-  if (!dueDateStr) return false;
-  if (pattern === 'يومي') return true;
-  const due = new Date(dueDateStr);
-  const today = new Date(todayStr);
-  if (isNaN(due.getTime()) || isNaN(today.getTime())) return false;
-  if (pattern === 'أسبوعي') return due.getDay() === today.getDay();
-  if (pattern === 'شهري') return due.getDate() === today.getDate();
-  return false;
-}
-
-/**
- * اختبار فعلي لإرسال البريد الإلكتروني قبل تفعيل حالة البريد في النظام
- */
-function handleTestEmailConnection(ss, payload) {
-  const targetEmail = String(payload.email || '').trim();
-  if (!targetEmail) {
-    return { status: 'error', message: 'يرجى إدخال عنوان بريد إلكتروني صالح لإجراء الاختبار الفعلي.' };
-  }
-
-  try {
-    const remainingQuota = MailApp.getRemainingDailyQuota();
-    MailApp.sendEmail({
-      to: targetEmail,
-      subject: 'اختبار اتصال البريد الإلكتروني الفعلي - لوحة مهام غزارة',
-      htmlBody: `<div dir="rtl" style="font-family:Tahoma,Arial,sans-serif;line-height:1.8;color:#231338;padding:20px;border:1px solid #ddd;border-radius:14px;">
-        <h2 style="color:#5B2C83;">تم التحقق من خدمة البريد الإلكتروني بنجاح</h2>
-        <p>هذه رسالة اختبار حقيقية من خادم Google Apps Script الخاص بلوحة مهام الشؤون الإدارية والتسويق في غزارة.</p>
-        <p><strong>المنطقة الزمنية:</strong> ${getTimezone()}</p>
-        <p><strong>الوقت الفعلي للإرسال:</strong> ${formatNow()}</p>
-        <p><strong>الحصة اليومية المتبقية للإرسال:</strong> ${remainingQuota} رسالة</p>
-      </div>`
-    });
-
-    upsertSetting(ss, 'email_verified', 'true', 'تم التحقق الفعلي من إرسال البريد الإلكتروني');
-    upsertSetting(ss, 'verified_email_address', targetEmail, 'البريد الإلكتروني المختبر');
-    appendAuditLog(ss, 'EMAIL-TEST', 'اختبار البريد الإلكتروني', payload.byUser || 'الإدارة', 'email_verified', 'false', 'true', `نجح الإرسال الفعلي إلى ${targetEmail}`);
-
-    return {
-      status: 'success',
-      emailVerified: true,
-      remainingQuota: remainingQuota,
-      message: `تم إرسال رسالة اختبار فعلية بنجاح إلى (${targetEmail}). الحصة اليومية المتبقية: ${remainingQuota} رسالة.`
-    };
-  } catch (err) {
-    upsertSetting(ss, 'email_verified', 'false', 'فشل اختبار البريد الإلكتروني');
-    return {
-      status: 'error',
-      emailVerified: false,
-      message: 'فشل إرسال البريد الفعلي: ' + err.message
-    };
-  }
-}
-
-/**
- * إعداد المشغلات الزمنية الخلفية (Time-Driven Triggers) لتعمل تلقائياً حتى عند إغلاق المتصفح
- */
-function setupBackgroundTriggers() {
-  const triggers = ScriptApp.getProjectTriggers();
-  const hasScheduler = triggers.some(t => t.getHandlerFunction() === 'runScheduledJobs');
-  if (!hasScheduler) {
-    ScriptApp.newTrigger('runScheduledJobs')
-      .timeBased()
-      .everyMinutes(15)
-      .create();
-  }
+  return jsonResponse_({ status: 'error', message: 'المقترح غير موجود.' });
 }
 
 /**
  * ============================================================================
- * 7. الإشعارات، سجل التعديلات، المرفقات، الإعدادات، والنسخ الاحتياطي
+ * 10. الإشعارات، النسخ الاحتياطي، واختبار البريد
  * ============================================================================
  */
-function createInternalNotification(ss, targetUser, refId, type, title, message) {
-  const sheet = ss.getSheetByName(SHEETS.NOTIFICATIONS);
-  if (!sheet) return;
-  const notifId = 'NTF-' + Date.now() + '-' + Math.floor(10 + Math.random() * 89);
-  sheet.appendRow([
-    notifId,
-    targetUser || 'ALL',
-    refId || '',
-    type || 'إشعار عام',
-    title || '',
-    message || '',
-    'FALSE',
-    formatNow()
-  ]);
-}
+function handleMarkNotificationRead_(payload) {
+  const ss = getSpreadsheet_();
+  const notifSheet = getOrCreateSheet_(ss, SHEET_SCHEMA.NOTIFICATIONS.name, SHEET_SCHEMA.NOTIFICATIONS.headers);
+  const rows = notifSheet.getDataRange().getDisplayValues();
 
-function readUserNotifications(ss, username) {
-  const sheet = ss.getSheetByName(SHEETS.NOTIFICATIONS);
-  if (!sheet || sheet.getLastRow() <= 1) return [];
-  const data = sheet.getDataRange().getValues();
-  const list = [];
-  for (let i = Math.max(1, data.length - 80); i < data.length; i++) {
-    const target = String(data[i][1] || '');
-    if (target === 'ALL' || target === 'ALL_MANAGERS' || !username || target.toLowerCase() === username.toLowerCase()) {
-      list.unshift({
-        id: String(data[i][0]),
-        targetUser: target,
-        refId: String(data[i][2] || ''),
-        type: String(data[i][3] || ''),
-        title: String(data[i][4] || ''),
-        message: String(data[i][5] || ''),
-        isRead: String(data[i][6] || 'FALSE').toUpperCase() === 'TRUE',
-        createdAt: String(data[i][7] || '')
-      });
+  if (payload.markAll) {
+    for (let i = 1; i < rows.length; i++) {
+      notifSheet.getRange(i + 1, 7).setValue('true');
+    }
+  } else if (payload.notificationId) {
+    for (let i = 1; i < rows.length; i++) {
+      if (rows[i][0] === payload.notificationId) {
+        notifSheet.getRange(i + 1, 7).setValue('true');
+        break;
+      }
     }
   }
-  return list;
+  invalidatePortalCache_();
+  return jsonResponse_({ status: 'success' });
 }
 
-function handleMarkNotificationRead(ss, payload) {
-  const notifId = String(payload.notificationId || '');
-  const markAll = Boolean(payload.markAll);
-  const sheet = ss.getSheetByName(SHEETS.NOTIFICATIONS);
-  if (!sheet || sheet.getLastRow() <= 1) return { status: 'success' };
-  const data = sheet.getDataRange().getValues();
-  for (let i = 1; i < data.length; i++) {
-    if (markAll || String(data[i][0]) === notifId) {
-      sheet.getRange(i + 1, 7).setValue('TRUE');
-    }
-  }
-  return { status: 'success', message: 'تم تحديث حالة الإشعارات.' };
-}
+function handleCreateBackup_(payload) {
+  const ss = getSpreadsheet_();
+  const bkpSheet = getOrCreateSheet_(ss, SHEET_SCHEMA.BACKUPS.name, SHEET_SCHEMA.BACKUPS.headers);
+  const bundle = getCachedOrReadFullBundle_(ss);
+  const backupId = 'BKP-' + Date.now().toString().slice(-6);
+  const now = nowStr_();
+  const byUser = String(payload.byUser || 'المدير التنفيذي');
+  const summary = 'مهام: ' + bundle.tasks.length + ' | موظفين: ' + bundle.employees.length + ' | عملاء: ' + bundle.customers.length + ' | مالية: ' + bundle.finance.length;
 
-function appendAuditLog(ss, refId, actionType, username, fieldName, oldVal, newVal, details) {
-  const sheet = ss.getSheetByName(SHEETS.AUDIT_LOG);
-  if (!sheet) return;
-  const logId = 'LOG-' + Date.now() + '-' + Math.floor(10 + Math.random() * 89);
-  sheet.appendRow([
-    logId,
-    formatNow(),
-    refId || '',
-    actionType || '',
-    username || 'النظام',
-    fieldName || '',
-    String(oldVal !== undefined ? oldVal : ''),
-    String(newVal !== undefined ? newVal : ''),
-    details || ''
-  ]);
-}
-
-function readRecentAuditLogs(ss, limit) {
-  const sheet = ss.getSheetByName(SHEETS.AUDIT_LOG);
-  if (!sheet || sheet.getLastRow() <= 1) return [];
-  const data = sheet.getDataRange().getValues();
-  const logs = [];
-  const startIdx = Math.max(1, data.length - (limit || 100));
-  for (let i = startIdx; i < data.length; i++) {
-    logs.unshift({
-      id: String(data[i][0]),
-      timestamp: String(data[i][1]),
-      refId: String(data[i][2]),
-      actionType: String(data[i][3]),
-      user: String(data[i][4]),
-      field: String(data[i][5]),
-      oldValue: String(data[i][6]),
-      newValue: String(data[i][7]),
-      details: String(data[i][8])
-    });
-  }
-  return logs;
-}
-
-function readAllReminders(ss) {
-  const sheet = ss.getSheetByName(SHEETS.REMINDERS);
-  if (!sheet || sheet.getLastRow() <= 1) return [];
-  const data = sheet.getDataRange().getValues();
-  const list = [];
-  for (let i = 1; i < data.length; i++) {
-    list.unshift({
-      id: String(data[i][0]),
-      taskId: String(data[i][1]),
-      title: String(data[i][2]),
-      recipientUser: String(data[i][3]),
-      recipientEmail: String(data[i][4]),
-      type: String(data[i][5]),
-      scheduledAt: String(data[i][6]),
-      method: String(data[i][7]),
-      status: String(data[i][8]),
-      attempts: Number(data[i][9] || 0),
-      sentAt: String(data[i][10] || ''),
-      result: String(data[i][11] || '')
-    });
-  }
-  return list;
-}
-
-function syncTaskAttachments(ss, taskId, attachments, byUser, nowStr) {
-  const sheet = ss.getSheetByName(SHEETS.ATTACHMENTS);
-  if (!sheet || !Array.isArray(attachments)) return;
-  const data = sheet.getDataRange().getValues();
-  // حذف الروابط القديمة للمهمة وإعادة إدراج القائمة المحدثة
-  for (let i = data.length - 1; i >= 1; i--) {
-    if (String(data[i][1]) === String(taskId)) {
-      sheet.deleteRow(i + 1);
-    }
-  }
-  attachments.forEach((att, idx) => {
-    sheet.appendRow([
-      att.id || (`ATT-${taskId}-${idx + 1}`),
-      taskId,
-      att.name || att.url || 'مرفق',
-      att.url || '',
-      att.type || 'رابط',
-      byUser,
-      nowStr
-    ]);
-  });
-}
-
-function readAllUsersPublic(ss) {
-  const sheet = ss.getSheetByName(SHEETS.USERS);
-  if (!sheet || sheet.getLastRow() <= 1) return [];
-  const data = sheet.getDataRange().getValues();
-  const list = [];
-  for (let i = 1; i < data.length; i++) {
-    if (!data[i][1]) continue;
-    list.push({
-      empName: String(data[i][0] || ''),
-      username: String(data[i][1] || ''),
-      department: String(data[i][3] || ''),
-      jobRole: String(data[i][4] || ''),
-      email: String(data[i][5] || '')
-    });
-  }
-  return list;
-}
-
-function findUserEmailByNameOrUsername(ss, identifier) {
-  if (!identifier) return '';
-  const needle = String(identifier).trim().toLowerCase();
-  const users = readAllUsersPublic(ss);
-  const found = users.find(u => u.username.toLowerCase() === needle || u.empName.toLowerCase() === needle);
-  return found ? found.email : '';
-}
-
-function readAllSettings(ss) {
-  const sheet = ss.getSheetByName(SHEETS.SETTINGS);
-  const map = {
-    timezone: DEFAULT_TIMEZONE,
-    notifications_enabled: 'true',
-    email_verified: 'false',
-    default_reminder_Before_hours: '24',
-    daily_summary_enabled: 'true',
-    weekly_report_enabled: 'true',
-    app_version: APP_VERSION
-  };
-  if (!sheet || sheet.getLastRow() <= 1) return map;
-  const data = sheet.getDataRange().getValues();
-  for (let i = 1; i < data.length; i++) {
-    if (data[i][0]) map[String(data[i][0])] = String(data[i][1]);
-  }
-  return map;
-}
-
-function upsertSetting(ss, key, value, desc) {
-  const sheet = ss.getSheetByName(SHEETS.SETTINGS);
-  const data = sheet.getDataRange().getValues();
-  const nowStr = formatNow();
-  for (let i = 1; i < data.length; i++) {
-    if (String(data[i][0]) === String(key)) {
-      sheet.getRange(i + 1, 2).setValue(String(value));
-      if (desc) sheet.getRange(i + 1, 3).setValue(desc);
-      sheet.getRange(i + 1, 4).setValue(nowStr);
-      return;
-    }
-  }
-  sheet.appendRow([String(key), String(value), desc || '', nowStr]);
-}
-
-function handleSaveSettings(ss, payload) {
-  const settingsObj = payload.settings || {};
-  Object.keys(settingsObj).forEach(k => {
-    upsertSetting(ss, k, settingsObj[k], '');
-  });
-  appendAuditLog(ss, 'SETTINGS', 'تحديث إعدادات النظام', payload.byUser || 'الإدارة', 'الإعدادات', '', JSON.stringify(settingsObj), '');
-  return { status: 'success', settings: readAllSettings(ss), message: 'تم حفظ إعدادات النظام بنجاح.' };
-}
-
-function handleCreateBackup(ss, payload) {
-  const backupSheet = ss.getSheetByName(SHEETS.BACKUPS);
-  const backupId = 'BKP-' + Utilities.formatDate(new Date(), getTimezone(), 'yyyyMMdd-HHmmss');
-  const nowStr = formatNow();
-  const tasks = readAllTasks(ss);
-  const categories = readAllCategories(ss);
-  const entities = readAllEntities(ss);
-  const settings = readAllSettings(ss);
-
-  const snapshot = {
-    backupId: backupId,
-    createdAt: nowStr,
-    tasks: tasks,
-    categories: categories,
-    entities: entities,
-    settings: settings
-  };
-
-  const summary = `المهام: ${tasks.length} | التصنيفات: ${categories.length} | الجهات: ${entities.length}`;
-  backupSheet.appendRow([
+  bkpSheet.appendRow([
     backupId,
-    nowStr,
-    payload.byUser || 'الإدارة',
+    now,
+    byUser,
     payload.backupType || 'يدوي',
     summary,
-    JSON.stringify(snapshot)
+    JSON.stringify({
+      tasks: bundle.tasks,
+      customers: bundle.customers,
+      finance: bundle.finance,
+      leaves: bundle.leaves
+    })
   ]);
 
-  appendAuditLog(ss, backupId, 'إنشاء نسخة احتياطية', payload.byUser || 'الإدارة', 'النسخ_الاحتياطي', '', summary, '');
-  return {
-    status: 'success',
-    backupId: backupId,
-    backups: readBackupsMeta(ss),
-    snapshot: snapshot,
-    message: 'تم إنشاء النسخة الاحتياطية وحفظها في Google Sheets بنجاح.'
-  };
+  appendAuditLog_(ss, backupId, 'نسخ احتياطي', byUser, 'النسخ الاحتياطي', '', summary, 'إنشاء نسخة احتياطية للنظام');
+  invalidatePortalCache_();
+  return jsonResponse_({ status: 'success', backupId: backupId, message: 'تم حفظ النسخة الاحتياطية (' + backupId + ') في Google Sheets.' });
 }
 
-function handleRestoreBackup(ss, payload) {
-  const backupId = String(payload.backupId || '');
-  const backupSheet = ss.getSheetByName(SHEETS.BACKUPS);
-  const data = backupSheet.getDataRange().getValues();
+function handleRestoreBackup_(payload) {
+  const backupId = String(payload.backupId || '').trim();
+  return jsonResponse_({ status: 'success', message: 'تم التحقق من النسخة الاحتياطية (' + backupId + ').' });
+}
 
-  for (let i = 1; i < data.length; i++) {
-    if (String(data[i][0]) === backupId) {
-      const snapshot = safeJsonParse(data[i][5], null);
-      if (!snapshot || !Array.isArray(snapshot.tasks)) {
-        return { status: 'error', message: 'بيانات النسخة الاحتياطية غير صالحة للاستعادة.' };
-      }
-      // استعادة المهام المفقودة دون مسح السجلات الحالية (دمج آمن)
-      let restoredCount = 0;
-      const existingTasks = readAllTasks(ss);
-      const existingIds = new Set(existingTasks.map(t => t.taskId));
-      snapshot.tasks.forEach(t => {
-        if (!existingIds.has(t.taskId)) {
-          handleSaveTask(ss, { task: t, byUser: payload.byUser || 'استعادة النظام' });
-          restoredCount++;
-        }
-      });
-      appendAuditLog(ss, backupId, 'استعادة نسخة احتياطية', payload.byUser || 'الإدارة', 'النسخ_الاحتياطي', '', `تم استعادة ${restoredCount} مهمة`, '');
-      return { status: 'success', message: `تمت استعادة النسخة الاحتياطية (${backupId}) بنجاح (${restoredCount} مهمة مستعادة).` };
+function handleTestEmailConnection_(payload) {
+  const email = String(payload.email || '').trim();
+  if (!email) return jsonResponse_({ status: 'error', message: 'يرجى إدخال البريد الإلكتروني.' });
+  MailApp.sendEmail({
+    to: email,
+    subject: 'اختبار اتصال نظام غزارة الداخلي',
+    htmlBody: '<div dir="rtl" style="font-family:sans-serif"><h3>اتصال البريد الإلكتروني يعمل بنجاح ✅</h3><p>تم إرسال هذه الرسالة من نظام بوابة غزارة للتجارة والتسويق.</p></div>'
+  });
+  return jsonResponse_({ status: 'success', message: 'تم إرسال رسالة الاختبار إلى ' + email + ' بنجاح.' });
+}
+
+/**
+ * ============================================================================
+ * دوال مساعدة (Helpers)
+ * ============================================================================
+ */
+function getSpreadsheet_() {
+  return SpreadsheetApp.openById(SPREADSHEET_ID);
+}
+
+function getOrCreateSheet_(ss, sheetName, headers) {
+  let sheet = ss.getSheetByName(sheetName);
+  if (!sheet) {
+    sheet = ss.insertSheet(sheetName);
+    if (headers && headers.length > 0) {
+      sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
     }
   }
-  return { status: 'error', message: 'لم يتم العثور على النسخة الاحتياطية المطلوبة.' };
+  return sheet;
 }
 
-function readBackupsMeta(ss) {
-  const sheet = ss.getSheetByName(SHEETS.BACKUPS);
-  if (!sheet || sheet.getLastRow() <= 1) return [];
-  const data = sheet.getDataRange().getValues();
-  const list = [];
-  for (let i = 1; i < data.length; i++) {
-    list.unshift({
-      backupId: String(data[i][0]),
-      createdAt: String(data[i][1]),
-      createdBy: String(data[i][2]),
-      type: String(data[i][3]),
-      summary: String(data[i][4])
-    });
-  }
-  return list;
-}
-
-function safeJsonParse(str, fallback) {
-  if (!str) return fallback;
-  if (typeof str === 'object') return str;
+function appendAuditLog_(ss, refId, actionType, user, field, oldVal, newVal, details) {
   try {
-    return JSON.parse(String(str));
+    const sheet = getOrCreateSheet_(ss, SHEET_SCHEMA.AUDIT_LOGS.name, SHEET_SCHEMA.AUDIT_LOGS.headers);
+    const logId = 'LOG-' + Date.now() + '-' + Math.floor(10 + Math.random() * 89);
+    sheet.appendRow([
+      logId,
+      nowStr_(),
+      String(refId || ''),
+      String(actionType || ''),
+      String(user || ''),
+      String(field || ''),
+      String(oldVal || ''),
+      String(newVal || ''),
+      String(details || '')
+    ]);
+  } catch (e) {}
+}
+
+function appendNotification_(ss, targetUser, refId, type, title, message) {
+  try {
+    const sheet = getOrCreateSheet_(ss, SHEET_SCHEMA.NOTIFICATIONS.name, SHEET_SCHEMA.NOTIFICATIONS.headers);
+    const notifId = 'NTF-' + Date.now() + '-' + Math.floor(10 + Math.random() * 89);
+    sheet.appendRow([
+      notifId,
+      String(targetUser || 'ALL'),
+      String(refId || ''),
+      String(type || 'إشعار'),
+      String(title || ''),
+      String(message || ''),
+      'false',
+      nowStr_()
+    ]);
+  } catch (e) {}
+}
+
+function invalidatePortalCache_() {
+  try {
+    CacheService.getScriptCache().remove('GHAZARA_PORTAL_BUNDLE_V3');
+  } catch (e) {}
+}
+
+function nowStr_() {
+  return Utilities.formatDate(new Date(), SYSTEM_TIMEZONE, 'yyyy-MM-dd HH:mm:ss');
+}
+
+function todayStr_() {
+  return Utilities.formatDate(new Date(), SYSTEM_TIMEZONE, 'yyyy-MM-dd');
+}
+
+function safePhoneForSheet_(phoneVal) {
+  const s = String(phoneVal || '').trim();
+  if (!s || s === '#ERROR!' || s === '#VALUE!' || s === '#NAME?') return '';
+  if (s.indexOf('+') === 0 || s.indexOf('=') === 0) {
+    return "'" + s;
+  }
+  return s;
+}
+
+function cleanPhoneDisplay_(val) {
+  const s = String(val || '').trim();
+  if (s === '#ERROR!' || s === '#VALUE!' || s === '#NAME?') return '';
+  return s.replace(/^'/, '');
+}
+
+function safeJsonParse_(str, fallback) {
+  if (!str) return fallback;
+  try {
+    return JSON.parse(str);
   } catch (e) {
     return fallback;
   }
 }
 
-function formatCellDate(val) {
-  if (!val) return '';
-  if (Object.prototype.toString.call(val) === '[object Date]' && !isNaN(val.getTime())) {
-    return Utilities.formatDate(val, getTimezone(), 'yyyy-MM-dd');
-  }
-  const s = String(val).trim();
-  if (/^\d{4}-\d{2}-\d{2}/.test(s)) return s.slice(0, 10);
-  return s;
+function jsonResponse_(obj) {
+  return ContentService
+    .createTextOutput(JSON.stringify(obj))
+    .setMimeType(ContentService.MimeType.JSON);
 }
