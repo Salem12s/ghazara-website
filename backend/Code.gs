@@ -1837,7 +1837,10 @@ function todayStr_() {
 
 function safePhoneForSheet_(phoneVal) {
   const s = String(phoneVal || '').trim();
-  if (!s || s === '#ERROR!') return '';
+  if (!s || s === '#ERROR!' || s === '#VALUE!' || s === '#NAME?') return '';
+  if (s.indexOf('+') === 0 || s.indexOf('=') === 0) {
+    return "'" + s;
+  }
   return s;
 }
 
