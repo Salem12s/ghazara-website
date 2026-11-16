@@ -33,7 +33,7 @@ const USER_TIERS_META = {
         title: 'بوابة الموارد البشرية والشؤون الإدارية والمالية',
         desc: 'إضافة وحذف الموظفين، اعتماد طلبات الإجازات، إسناد ومتابعة المهام الشخصية أو عبر مديري الأقسام، وإدارة العملاء والقيود المالية.',
         defaultPerms: [
-            'manage_employees', 'approve_leaves_hr', 'manage_all_tasks', 'manage_customers',
+           'approve_leaves_hr', 'manage_all_tasks', 'manage_customers',
             'manage_finance', 'apply_leave', 'submit_suggestion'
         ]
     },
@@ -61,7 +61,7 @@ const USER_TIERS_META = {
 const PERMISSION_CATALOG = [
     { key: 'manage_all_tasks', label: 'إدارة وإسناد المهام لجميع الأقسام', scope: 'exec' },
     { key: 'manage_dept_tasks', label: 'إسناد ومتابعة مهام القسم', scope: 'dept' },
-    { key: 'manage_employees', label: 'إضافة وتعديل وحذف الموظفين', scope: 'exec' },
+    
     { key: 'approve_leaves_hr', label: 'اعتماد طلبات الإجازات (موارد بشرية)', scope: 'exec' },
     { key: 'approve_leaves_exec', label: 'الاعتماد النهائي للإجازات (إدارة تنفيذية)', scope: 'exec' },
     { key: 'manage_customers', label: 'إضافة وتعديل كافة العملاء والعقود والأقساط', scope: 'exec' },
@@ -141,6 +141,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
 function purgeLegacyDefaultCache() {
     try {
+        // ترحيل أي جلسة دخول نشطة من المفتاح القديم (إن وجدت) إلى المفتاح الموحد للبوابة قبل تنظيف الكاش القديم
+        const currentSession = localStorage.getItem(GHAZARA_CONFIG.STORAGE_KEY_SESSION);
+        const legacySession = localStorage.getItem('ghazara_active_user_session');
+        if (!currentSession && legacySession) {
+            const parsedLegacy = JSON.parse(legacySession);
+            if (parsedLegacy && parsedLegacy.username) {
+                parsedLegacy.userTier = parsedLegacy.userTier || resolveTier(parsedLegacy.jobRole, parsedLegacy.department, parsedLegacy.specialty);
+                parsedLegacy.permissions = getEffectivePerms(parsedLegacy);
+                localStorage.setItem(GHAZARA_CONFIG.STORAGE_KEY_SESSION, JSON.stringify(parsedLegacy));
+            }
+        }
         [
             'ghazara_users_sheet_v3',
             'ghazara_active_user_session_v3',
@@ -276,10 +287,51 @@ function hasPerm(permKey) {
     return perms.includes('all_access') || perms.includes(permKey);
 }
 
+let _lastClickedPortalBtn = null;
+let _isPortalWriteBusy = false;
+
+document.addEventListener('click', (e) => {
+    const btn = e.target.closest('button, input[type="submit"]');
+    if (btn) _lastClickedPortalBtn = btn;
+}, true);
+
 async function callBackendAPI(payload) {
+    const isBackgroundSync = payload && payload.action === 'getPortalBundle';
+    const isLoginFlow = payload && ['login', 'forgotPassword', 'changePassword'].includes(payload.action);
+
+    // منع تكرار الضغط أو إرسال عمليتي حفظ في نفس اللحظة
+    if (!isBackgroundSync && _isPortalWriteBusy) {
+        return { status: 'error', message: 'يرجى الانتظار حتى تكتمل العملية الجارية...' };
+    }
+
+    const lockedElements = [];
+    let primaryBtn = null;
+
+    if (!isBackgroundSync) {
+        _isPortalWriteBusy = true;
+
+        // تحديد الزر الذي ضغط عليه المستخدم لتغيير نصه مؤقتاً
+        const activeEl = document.activeElement?.closest?.('button, input[type="submit"]');
+        primaryBtn = (activeEl || _lastClickedPortalBtn);
+        if (primaryBtn && !isLoginFlow && primaryBtn.tagName === 'BUTTON') {
+            primaryBtn.dataset.origHtml = primaryBtn.innerHTML;
+            primaryBtn.innerHTML = '<span>⏳ جاري التنفيذ...</span>';
+        }
+
+        // تعطيل جميع أزرار الحفظ والإجراءات والاختيارات المؤثرة حتى تنتهي العملية
+        const selector = 'button[type="submit"], #screen-portal button[onclick], #screen-portal select[onchange]';
+        document.querySelectorAll(selector).forEach(el => {
+            if (!el.disabled) {
+                el.disabled = true;
+                el.classList.add('opacity-60', 'cursor-not-allowed');
+                lockedElements.push(el);
+            }
+        });
+    }
+
     try {
         const controller = new AbortController();
-        const timer = setTimeout(() => controller.abort(), 14000);
+        const timer = setTimeout(() => controller.abort(), 30000);
         const res = await fetch(GHAZARA_CONFIG.GOOGLE_SCRIPT_URL, {
             method: 'POST',
             headers: { 'Content-Type': 'text/plain;charset=utf-8' },
@@ -290,6 +342,18 @@ async function callBackendAPI(payload) {
         return await res.json();
     } catch (err) {
         return { networkError: true, error: err.message };
+    } finally {
+        if (!isBackgroundSync) {
+            _isPortalWriteBusy = false;
+            if (primaryBtn && primaryBtn.dataset.origHtml !== undefined) {
+                primaryBtn.innerHTML = primaryBtn.dataset.origHtml;
+                delete primaryBtn.dataset.origHtml;
+            }
+            lockedElements.forEach(el => {
+                el.disabled = false;
+                el.classList.remove('opacity-60', 'cursor-not-allowed');
+            });
+        }
     }
 }
 
@@ -545,7 +609,7 @@ function getAllowedTabsForCurrentUser() {
         { id: 'customers', label: tier === 'مدير قسم' ? 'عملاء ومتطلبات القسم' : 'إدارة العملاء والعقود', icon: '🤝', show: tier === 'مدير تنفيذي' || tier === 'موارد بشرية' || tier === 'مدير قسم' || hasPerm('manage_customers') || hasPerm('manage_dept_customers') },
         { id: 'leads', label: 'طلبات الموقع الإلكتروني', icon: '🌐', show: tier === 'مدير تنفيذي' || tier === 'مدير قسم' || tier === 'موارد بشرية' || hasPerm('manage_leads') },
         { id: 'finance', label: 'المالية والحسابات', icon: '💰', show: tier === 'مدير تنفيذي' || tier === 'موارد بشرية' || hasPerm('manage_finance') },
-        { id: 'employees', label: 'إدارة الموظفين والحسابات', icon: '👥', show: tier === 'مدير تنفيذي' || tier === 'موارد بشرية' || hasPerm('manage_employees') },
+        { id: 'employees', label: 'إدارة الموظفين والحسابات', icon: '👥', show: tier === 'مدير تنفيذي' },
         { id: 'permissions', label: tier === 'مدير قسم' ? 'صلاحيات موظفي القسم' : 'إدارة الصلاحيات الشاملة', icon: '🔐', show: tier === 'مدير تنفيذي' || tier === 'مدير قسم' || hasPerm('manage_permissions') || hasPerm('manage_dept_permissions') },
         { id: 'monthly_reports', label: 'التقارير الشهرية للأقسام', icon: '📊', show: tier === 'مدير تنفيذي' || hasPerm('monthly_reports') },
         { id: 'backups', label: 'السجل والنسخ الاحتياطي', icon: '🛡️', show: tier === 'مدير تنفيذي' || hasPerm('manage_backups') }
@@ -826,7 +890,11 @@ async function handleSavePortalTask(event) {
     let taskId = document.getElementById('tfTaskId').value.trim();
     const isEdit = Boolean(taskId);
     if (!taskId) {
-        taskId = `TSK-2026-${String(PORTAL.tasks.length + 1).padStart(4, '0')}`;
+        const maxNum = PORTAL.tasks.reduce((max, item) => {
+            const m = String(item.taskId || '').match(/(\d+)$/);
+            return m ? Math.max(max, parseInt(m[1], 10)) : max;
+        }, 0);
+        taskId = `TSK-2026-${String(maxNum + 1).padStart(4, '0')}`;
     }
 
     const status = document.getElementById('tfStatus').value;
@@ -858,27 +926,39 @@ async function handleSavePortalTask(event) {
         updatedAt: now
     };
 
-    closeTaskFormModal();
     const res = await callBackendAPI({
         action: 'saveTask',
         task: taskObj,
         byUser: u.empName
     });
 
+
+
+    closeTaskFormModal();
+    showPortalToast('جاري حفظ المهمة في قاعدة البيانات...', 'warning');
+
+    
+
     if (res.networkError || res.status === 'error') {
+        await syncPortalBundleInBackground();
+        if (PORTAL.tasks.some(x => x.taskId === taskId || x.title === taskObj.title)) {
+            showPortalToast(`تم حفظ المهمة (${taskId}) في قاعدة البيانات بنجاح.`);
+            return;
+        }
         showPortalToast(res.message || 'تعذر حفظ المهمة في قاعدة البيانات.', 'error');
         return;
     }
 
+    if (res.taskId) taskObj.taskId = res.taskId;
     if (isEdit) {
-        const idx = PORTAL.tasks.findIndex(x => x.taskId === taskId);
+        const idx = PORTAL.tasks.findIndex(x => x.taskId === taskObj.taskId);
         if (idx !== -1) PORTAL.tasks[idx] = taskObj;
     } else {
         PORTAL.tasks.unshift(taskObj);
     }
     savePortalCache();
     renderAuthenticatedPortalUI();
-    showPortalToast(res.message || `تم حفظ المهمة (${taskId}) في قاعدة البيانات بنجاح.`);
+    showPortalToast(res.message || `تم حفظ المهمة (${taskObj.taskId}) في قاعدة البيانات بنجاح.`);
 }
 
 async function quickUpdateTaskStatus(taskId, newStatus) {
@@ -1275,6 +1355,9 @@ function renderSuggestionsSection() {
  */
 async function handleSaveCustomerForm(event) {
     event.preventDefault();
+    const submitBtn = event.target.querySelector('button[type="submit"]');
+    if (submitBtn) submitBtn.disabled = true;
+
     const installmentsRaw = document.getElementById('custInstallments').value.trim();
     let parsedInstallments = [];
     if (installmentsRaw) {
@@ -1302,11 +1385,15 @@ async function handleSaveCustomerForm(event) {
         notes: document.getElementById('custNotes').value.trim()
     };
 
+    showPortalToast('جاري حفظ بيانات العميل...', 'warning');
     const res = await callBackendAPI({
         action: 'saveCustomer',
         customer: custObj,
         byUser: PORTAL.user?.empName || 'الإدارة'
     });
+
+    if (submitBtn) submitBtn.disabled = false;
+
     if (res.networkError || res.status === 'error') {
         showPortalToast(res.message || 'تعذر حفظ بيانات العميل في قاعدة البيانات.', 'error');
         return;
@@ -1526,6 +1613,10 @@ function renderFinanceSection() {
  */
 async function handleSaveEmployeeForm(event) {
     event.preventDefault();
+    if (PORTAL.user?.userTier !== 'مدير تنفيذي') {
+        showPortalToast('عذراً، صلاحية إضافة أو تعديل المستخدمين مقيدة بالمدير التنفيذي فقط.', 'error');
+        return;
+    }
     const empId = document.getElementById('empFormId').value.trim();
     const empName = document.getElementById('empFormName').value.trim();
     const jobRole = document.getElementById('empFormRole').value.trim();
@@ -1562,7 +1653,9 @@ async function handleSaveEmployeeForm(event) {
         action: 'saveEmployeeAndUser',
         employee: empObj,
         account: { username: username, password: password, userTier: userTier },
-        byUser: PORTAL.user?.empName || 'الموارد البشرية'
+        byUser: PORTAL.user?.empName || 'المدير التنفيذي',
+        byUsername: PORTAL.user?.username || '',
+        byUserTier: PORTAL.user?.userTier || ''
     });
 
     if (res.networkError || res.status === 'error') {
@@ -1577,6 +1670,10 @@ async function handleSaveEmployeeForm(event) {
 }
 
 function editEmployeeRecord(empId) {
+    if (PORTAL.user?.userTier !== 'مدير تنفيذي') {
+        showPortalToast('عذراً، صلاحية تعديل بيانات المستخدمين مقيدة بالمدير التنفيذي فقط.', 'error');
+        return;
+    }
     const e = PORTAL.employees.find(x => x.empId === empId);
     if (!e) return;
     const u = PORTAL.users.find(x => x.empId === empId || x.empName === e.empName);
@@ -1600,6 +1697,10 @@ function editEmployeeRecord(empId) {
 }
 
 async function removeEmployeeRecord(empId) {
+    if (PORTAL.user?.userTier !== 'مدير تنفيذي') {
+        showPortalToast('عذراً، صلاحية حذف المستخدمين مقيدة بالمدير التنفيذي فقط.', 'error');
+        return;
+    }
     const e = PORTAL.employees.find(x => x.empId === empId);
     if (!e) return;
     const u = PORTAL.users.find(x => x.empId === empId || x.empName === e.empName);
@@ -1609,7 +1710,9 @@ async function removeEmployeeRecord(empId) {
         empId: empId,
         username: u ? u.username : '',
         empName: e.empName,
-        byUser: PORTAL.user?.empName || 'الموارد البشرية'
+        byUser: PORTAL.user?.empName || 'المدير التنفيذي',
+        byUsername: PORTAL.user?.username || '',
+        byUserTier: PORTAL.user?.userTier || ''
     });
 
     if (res.networkError || res.status === 'error') {

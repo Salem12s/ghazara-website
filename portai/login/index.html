@@ -1,0 +1,747 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>بوابة غزارة الداخلية | نظام الإدارة والموظفين</title>
+    <meta name="robots" content="noindex, nofollow">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="../../assets/js/tailwind-config.js" onerror="var s=document.createElement('script');s.src='../assets/js/tailwind-config.js';document.head.appendChild(s);"></script>
+    <link rel="stylesheet" href="../../assets/css/style.css" onerror="this.onerror=null;this.href='../assets/css/style.css';">
+</head>
+<body class="min-h-screen flex flex-col selection:bg-ghazara-purple selection:text-white">
+
+    <!-- Ambient Aurora -->
+    <div class="aurora-canvas" aria-hidden="true">
+        <div class="aurora-orb aurora-orb-1"></div>
+        <div class="aurora-orb aurora-orb-2"></div>
+        <div class="aurora-orb aurora-orb-3"></div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="portal-toast" class="hidden"></div>
+
+    <!-- ==================== 1. شاشة تسجيل الدخول السرية (/portai/login) ==================== -->
+    <div id="screen-login" class="min-h-screen flex flex-col justify-between">
+        <header class="w-full py-5 px-4 sm:px-8">
+            <div class="max-w-5xl mx-auto flex items-center justify-between">
+                <a href="../../index.html" class="flex items-center gap-3 group">
+                    <div class="flex flex-col items-end leading-none">
+                        <span class="text-2xl font-bold text-ghazara-purple">غزارة</span>
+                        <span class="font-display text-xs font-extrabold text-ghazara-purple">Ghazara</span>
+                        <span class="text-[10px] font-semibold text-ghazara-orange mt-0.5">بوابة الموظفين</span>
+                    </div>
+                    <img 
+                        src="../../assets/ghazara-logo.png" 
+                        onerror="this.onerror=null;this.src='../assets/ghazara-logo.png';"
+                        alt="شعار غزارة" 
+                        class="h-12 w-auto shrink-0 object-contain" 
+                    />
+                </a>
+                <a href="../../index.html" class="frosted-pill px-5 py-2 rounded-full text-xs sm:text-sm font-bold text-ghazara-purple hover:bg-white transition-all">
+                    العودة للموقع الرئيسي ⟵
+                </a>
+            </div>
+        </header>
+
+
+        <main class="flex-grow flex items-center justify-center px-4 py-8">
+            <div class="max-w-lg w-full">
+                <div class="frosted-card rounded-[32px] p-7 sm:p-10 border-purple-200/80 relative overflow-hidden">
+                    <div class="absolute -top-16 -left-16 w-48 h-48 bg-purple-400/10 rounded-full blur-3xl pointer-events-none"></div>
+                    <div class="absolute -bottom-16 -right-16 w-48 h-48 bg-orange-400/10 rounded-full blur-3xl pointer-events-none"></div>
+
+                    <div id="auth-alert" class="hidden"></div>
+
+                    <!-- LOGIN VIEW -->
+                    <div id="view-login" class="space-y-6 relative z-10">
+                        <div class="space-y-2 text-center sm:text-right">
+                            <span class="inline-block px-3.5 py-1 rounded-full bg-ghazara-purpleSoft text-ghazara-purple text-xs font-bold">
+                                نظام غزارة الداخلي
+                            </span>
+                            <h1 class="text-2xl sm:text-3xl font-bold text-ghazara-purpleDark">
+                                تسجيل دخول الموظفين
+                            </h1>
+                            <p class="text-sm text-slate-600 leading-relaxed">
+                                أدخل اسم المستخدم وكلمة المرور المسجلة في النظام.
+                            </p>
+                        </div>
+
+                        <form id="login-form" onsubmit="handlePortalLoginSubmit(event)" class="space-y-5">
+                            <div>
+                                <label for="loginIdentifier" class="block text-sm font-bold text-ghazara-purpleDark mb-2">
+                                    اسم المستخدم أو البريد الإلكتروني <span class="text-ghazara-orange">*</span>
+                                </label>
+                                <input type="text" id="loginIdentifier" required autocomplete="username" dir="ltr" placeholder="أدخل اسم المستخدم"
+                                    class="w-full rounded-2xl border border-purple-200/90 bg-white/85 px-4 py-3.5 text-right text-ghazara-purpleDark placeholder-slate-400 focus:bg-white focus:border-ghazara-purple focus:ring-2 focus:ring-ghazara-purple/15 outline-none transition-all">
+                            </div>
+
+                            <div>
+                                <div class="flex items-center justify-between mb-2">
+                                    <label for="loginPassword" class="block text-sm font-bold text-ghazara-purpleDark">
+                                        كلمة المرور <span class="text-ghazara-orange">*</span>
+                                    </label>
+                                    <button type="button" onclick="switchLoginSubView('forgot')" class="text-xs font-bold text-ghazara-orange hover:text-ghazara-purple transition-colors">
+                                        نسيت كلمة المرور؟
+                                    </button>
+                                </div>
+                                <input type="password" id="loginPassword" required autocomplete="current-password" dir="ltr" placeholder="••••••••"
+                                    class="w-full rounded-2xl border border-purple-200/90 bg-white/85 px-4 py-3.5 text-right text-ghazara-purpleDark placeholder-slate-400 focus:bg-white focus:border-ghazara-purple focus:ring-2 focus:ring-ghazara-purple/15 outline-none transition-all">
+                            </div>
+
+                            <button type="submit" id="login-submit-btn" class="w-full btn-purple-gradient font-bold text-base py-4 rounded-full flex items-center justify-center gap-3 disabled:opacity-60">
+                                <span id="login-spinner" class="spinner hidden"></span>
+                                <span id="login-btn-text">تسجيل الدخول</span>
+                            </button>
+                        </form>
+                    </div>
+
+                    <!-- FORGOT VIEW -->
+                    <div id="view-forgot" class="hidden space-y-6 relative z-10">
+                        <div class="space-y-2">
+                            <span class="inline-block px-3.5 py-1 rounded-full bg-ghazara-orangeSoft text-ghazara-orange text-xs font-bold">
+                                استعادة الحساب
+                            </span>
+                            <h2 class="text-2xl font-bold text-ghazara-purpleDark">نسيت كلمة المرور؟</h2>
+                            <p class="text-sm text-slate-600">أدخل اسم المستخدم أو البريد الإلكتروني لتوليد كلمة مرور مؤقتة.</p>
+                        </div>
+                        <form id="forgot-form" onsubmit="handlePortalForgotSubmit(event)" class="space-y-4">
+                            <input type="text" id="forgotIdentifier" required dir="ltr" placeholder="username or email@ghazaraye.com"
+                                class="w-full rounded-2xl border border-purple-200/90 bg-white/85 px-4 py-3.5 text-right text-ghazara-purpleDark outline-none">
+                            <button type="submit" id="forgot-submit-btn" class="w-full btn-orange-gradient font-bold text-base py-3.5 rounded-full">
+                                إرسال كلمة مرور مؤقتة
+                            </button>
+                            <div class="text-center">
+                                <button type="button" onclick="switchLoginSubView('login')" class="text-xs font-bold text-ghazara-purple hover:underline">
+                                    ⟵ العودة لتسجيل الدخول
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+
+                    <!-- CHANGE PASSWORD VIEW -->
+                    <div id="view-change-password" class="hidden space-y-6 relative z-10">
+                        <h2 class="text-2xl font-bold text-ghazara-purpleDark">تعيين كلمة مرور جديدة</h2>
+                        <form id="change-pass-form" onsubmit="handlePortalChangePassSubmit(event)" class="space-y-4">
+                            <input type="password" id="newPassword" required minlength="4" dir="ltr" placeholder="كلمة المرور الجديدة"
+                                class="w-full rounded-2xl border border-purple-200 px-4 py-3 text-right">
+                            <input type="password" id="confirmNewPassword" required minlength="4" dir="ltr" placeholder="تأكيد كلمة المرور الجديدة"
+                                class="w-full rounded-2xl border border-purple-200 px-4 py-3 text-right">
+                            <button type="submit" class="w-full btn-purple-gradient font-bold text-base py-3.5 rounded-full">
+                                حفظ كلمة المرور والدخول
+                            </button>
+                        </form>
+                    </div>
+
+                </div>
+            </div>
+        </main>
+
+        <footer class="py-5 text-center text-xs text-slate-400">
+            © 2026 غزارة للتجارة والتسويق — نظام البوابة الداخلية
+        </footer>
+    </div>
+
+    <!-- ==================== 2. شاشة البوابة المتكاملة للفئات الأربع ==================== -->
+    <div id="screen-portal" class="hidden min-h-screen flex flex-col">
+        <!-- Header -->
+        <header class="sticky top-0 z-40 bg-white/85 backdrop-blur-xl border-b border-purple-100 shadow-sm no-print">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex flex-wrap items-center justify-between gap-3">
+        <div class="flex items-center gap-3">
+            <img 
+                src="../../assets/ghazara-logo.png" 
+                onerror="this.onerror=null;this.src='../assets/ghazara-logo.png';"
+                alt="شعار غزارة" 
+                class="h-11 w-auto shrink-0 object-contain" 
+            />
+            <div>
+                <div class="flex items-center gap-2">
+                    <span id="header-user-name" class="text-sm sm:text-base font-bold text-ghazara-purpleDark">-</span>
+                    <span id="header-user-tier-badge" class="px-3 py-0.5 rounded-full text-xs font-bold bg-ghazara-purple text-white">-</span>
+                </div>
+                <p id="header-user-role" class="text-[11px] text-slate-500">-</p>
+            </div>
+        </div>
+
+        <div class="flex flex-wrap items-center gap-2 sm:gap-3">
+            <div id="sync-status-badge" class="hidden sm:inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-purple-50 text-[11px] font-bold text-ghazara-purple border border-purple-100">
+                <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+                <span>متصل بقاعدة البيانات</span>
+            </div>
+
+            <span id="portal-live-clock" class="hidden lg:inline-block font-display text-xs font-semibold text-slate-600 bg-white px-3 py-1.5 rounded-full border border-purple-100"></span>
+            <button type="button" onclick="syncPortalBundleInBackground()" class="px-3 py-1.5 rounded-full bg-ghazara-purpleSoft text-ghazara-purple text-xs font-bold hover:bg-ghazara-purple hover:text-white transition-all">
+                ↻ مزامنة
+            </button>
+            <button type="button" onclick="logoutPortalSession()" class="px-3.5 py-1.5 rounded-full bg-red-50 text-red-600 text-xs font-bold hover:bg-red-100 transition-all">
+                خروج
+            </button>
+        </div>
+    </div>
+</header>
+
+
+        <!-- Main Workspace Container -->
+        <main class="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+            <!-- Role Welcome Banner -->
+            <div class="frosted-card rounded-3xl p-5 sm:p-6 border border-purple-200/80 flex flex-wrap items-center justify-between gap-4 no-print">
+                <div class="space-y-1">
+                    <h2 id="banner-role-title" class="text-lg sm:text-2xl font-bold text-ghazara-purpleDark">بوابة المدير التنفيذي الشاملة</h2>
+                    <p id="banner-role-desc" class="text-xs sm:text-sm text-slate-600">صلاحية كاملة لمنح الصلاحيات، استخراج التقارير الشهرية للأقسام، وإدارة كافة العمليات.</p>
+                </div>
+            </div>
+
+            <!-- Dynamic Navigation Tabs (Scoped to User Tier & Granted Permissions) -->
+            <nav id="portal-main-tabs" class="flex items-center gap-2 overflow-x-auto custom-scrollbar pb-2 no-print" aria-label="أقسام النظام"></nav>
+
+            <!-- ==================== TAB 1: المهام (TASKS) ==================== -->
+            <section id="tab-sec-tasks" class="space-y-6">
+                <!-- KPI Cards -->
+                <div class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-2.5">
+                    <button type="button" onclick="setTaskKpiFilter('ALL')" class="frosted-card p-3.5 rounded-2xl text-right border border-purple-100 hover:border-ghazara-purple">
+                        <span class="text-[11px] font-bold text-slate-500 block">إجمالي المهام</span>
+                        <span id="p-kpi-ALL" class="font-display text-xl font-extrabold text-ghazara-purpleDark">0</span>
+                    </button>
+                    <button type="button" onclick="setTaskKpiFilter('NEW')" class="frosted-card p-3.5 rounded-2xl text-right border border-indigo-100 hover:border-indigo-500">
+                        <span class="text-[11px] font-bold text-indigo-700 block">جديدة</span>
+                        <span id="p-kpi-NEW" class="font-display text-xl font-extrabold text-indigo-700">0</span>
+                    </button>
+                    <button type="button" onclick="setTaskKpiFilter('IN_PROGRESS')" class="frosted-card p-3.5 rounded-2xl text-right border border-sky-100 hover:border-sky-500">
+                        <span class="text-[11px] font-bold text-sky-700 block">قيد التنفيذ</span>
+                        <span id="p-kpi-IN_PROGRESS" class="font-display text-xl font-extrabold text-sky-700">0</span>
+                    </button>
+                    <button type="button" onclick="setTaskKpiFilter('COMPLETED')" class="frosted-card p-3.5 rounded-2xl text-right border border-emerald-100 hover:border-emerald-500">
+                        <span class="text-[11px] font-bold text-emerald-700 block">مكتملة</span>
+                        <span id="p-kpi-COMPLETED" class="font-display text-xl font-extrabold text-emerald-600">0</span>
+                    </button>
+                    <button type="button" onclick="setTaskKpiFilter('OVERDUE')" class="frosted-card p-3.5 rounded-2xl text-right border border-red-100 hover:border-red-500">
+                        <span class="text-[11px] font-bold text-red-600 block">متأخرة</span>
+                        <span id="p-kpi-OVERDUE" class="font-display text-xl font-extrabold text-red-600">0</span>
+                    </button>
+                    <button type="button" onclick="setTaskKpiFilter('DUE_TODAY')" class="frosted-card p-3.5 rounded-2xl text-right border border-orange-100 hover:border-ghazara-orange">
+                        <span class="text-[11px] font-bold text-ghazara-orange block">مستحقة اليوم</span>
+                        <span id="p-kpi-DUE_TODAY" class="font-display text-xl font-extrabold text-ghazara-orange">0</span>
+                    </button>
+                    <button type="button" onclick="setTaskKpiFilter('WAITING_RESPONSE')" class="frosted-card p-3.5 rounded-2xl text-right border border-amber-100 hover:border-amber-500">
+                        <span class="text-[11px] font-bold text-amber-800 block">بانتظار رد</span>
+                        <span id="p-kpi-WAITING_RESPONSE" class="font-display text-xl font-extrabold text-amber-700">0</span>
+                    </button>
+                    <button type="button" onclick="setTaskKpiFilter('WAITING_APPROVAL')" class="frosted-card p-3.5 rounded-2xl text-right border border-purple-100 hover:border-ghazara-purple">
+                        <span class="text-[11px] font-bold text-ghazara-purple block">بانتظار اعتماد</span>
+                        <span id="p-kpi-WAITING_APPROVAL" class="font-display text-xl font-extrabold text-ghazara-purple">0</span>
+                    </button>
+                </div>
+
+                <!-- Filters & Add Task Bar -->
+                <div class="frosted-card rounded-3xl p-4 sm:p-5 border border-purple-100 flex flex-wrap items-center justify-between gap-3">
+                    <div class="flex flex-wrap items-center gap-2.5 flex-grow">
+                        <input type="text" id="taskSearchInput" oninput="renderTasksSection()" placeholder="ابحث برقم المهمة، العنوان، أو اسم الموظف..."
+                            class="rounded-2xl border border-purple-200 bg-white px-4 py-2 text-xs sm:text-sm min-w-[220px] flex-grow outline-none focus:border-ghazara-purple">
+                        <select id="taskStatusFilter" onchange="renderTasksSection()" class="rounded-2xl border border-purple-200 bg-white px-3 py-2 text-xs font-bold">
+                            <option value="ALL">جميع الحالات</option>
+                            <option value="جديدة">جديدة</option>
+                            <option value="قيد التنفيذ">قيد التنفيذ</option>
+                            <option value="بانتظار رد">بانتظار رد</option>
+                            <option value="بانتظار اعتماد">بانتظار اعتماد</option>
+                            <option value="مكتملة">مكتملة</option>
+                            <option value="مؤجلة">مؤجلة</option>
+                        </select>
+                        <select id="taskDeptFilter" onchange="renderTasksSection()" class="rounded-2xl border border-purple-200 bg-white px-3 py-2 text-xs font-bold">
+                            <option value="ALL">جميع الأقسام</option>
+                            <option value="الإدارة العليا">الإدارة العليا</option>
+                            <option value="الموارد البشرية">الموارد البشرية</option>
+                            <option value="المبيعات وتطوير الأعمال">المبيعات وتطوير الأعمال</option>
+                            <option value="التسويق">التسويق</option>
+                            <option value="الإعلام والإنتاج">الإعلام والإنتاج</option>
+                            <option value="التصميم والمونتاج">التصميم والمونتاج</option>
+                            <option value="المالية والحسابات">المالية والحسابات</option>
+                        </select>
+                    </div>
+                    <button type="button" id="btn-open-new-task" onclick="openTaskFormModal()" class="btn-purple-gradient px-5 py-2.5 rounded-full text-xs sm:text-sm font-bold shrink-0">
+                        + إسناد / إضافة مهمة جديدة
+                    </button>
+                </div>
+
+                <!-- Tasks List -->
+                <div id="portal-tasks-list" class="space-y-3"></div>
+            </section>
+
+            <!-- ==================== TAB 2: طلبات الإجازات (LEAVES) ==================== -->
+            <section id="tab-sec-leaves" class="hidden space-y-6">
+                <div class="frosted-card rounded-3xl p-6 border border-purple-200/80 space-y-4">
+                    <h3 class="text-base sm:text-lg font-bold text-ghazara-purpleDark">🌴 تقديم طلب إجازة جديد</h3>
+                    <form id="form-leave-request" onsubmit="handleSubmitLeaveForm(event)" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3.5 items-end">
+                        <div>
+                            <label class="block text-xs font-bold text-ghazara-purpleDark mb-1">نوع الإجازة *</label>
+                            <select id="lvType" required class="w-full rounded-xl border border-purple-200 px-3 py-2 text-xs font-bold bg-white">
+                                <option value="إجازة سنوية">إجازة سنوية</option>
+                                <option value="إجازة مرضية">إجازة مرضية</option>
+                                <option value="إجازة طارئة">إجازة طارئة</option>
+                                <option value="إجازة بدون راتب">إجازة بدون راتب</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-ghazara-purpleDark mb-1">تاريخ البداية *</label>
+                            <input type="date" id="lvStartDate" required onchange="calculateLeaveDaysInput()" class="w-full rounded-xl border border-purple-200 px-3 py-2 text-xs bg-white">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-ghazara-purpleDark mb-1">تاريخ النهاية *</label>
+                            <input type="date" id="lvEndDate" required onchange="calculateLeaveDaysInput()" class="w-full rounded-xl border border-purple-200 px-3 py-2 text-xs bg-white">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-ghazara-purpleDark mb-1">عدد الأيام</label>
+                            <input type="number" id="lvDaysCount" min="1" value="1" readonly class="w-full rounded-xl border border-purple-100 bg-purple-50 px-3 py-2 text-xs font-display font-bold">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-ghazara-purpleDark mb-1">البديل المقترح</label>
+                            <input type="text" id="lvSubstitute" placeholder="اسم الزميل البديل" class="w-full rounded-xl border border-purple-200 px-3 py-2 text-xs bg-white">
+                        </div>
+                        <div>
+                            <button type="submit" class="w-full btn-orange-gradient py-2.5 px-4 rounded-xl text-xs font-bold">إرسال طلب الإجازة</button>
+                        </div>
+                        <div class="sm:col-span-2 lg:col-span-6">
+                            <input type="text" id="lvReason" required placeholder="سبب ومبررات طلب الإجازة *" class="w-full rounded-xl border border-purple-200 px-3.5 py-2 text-xs bg-white">
+                        </div>
+                    </form>
+                </div>
+
+                <div class="frosted-card rounded-3xl p-6 border border-purple-200/80 space-y-4">
+                    <h3 class="text-base sm:text-lg font-bold text-ghazara-purpleDark">سجل طلبات الإجازات وحالة الاعتماد</h3>
+                    <div class="overflow-x-auto custom-scrollbar">
+                        <table class="w-full text-right border-collapse">
+                            <thead>
+                                <tr class="bg-ghazara-purpleSoft text-ghazara-purpleDark text-xs font-bold">
+                                    <th class="p-3 rounded-r-xl">رقم الطلب</th>
+                                    <th class="p-3">الموظف والقسم</th>
+                                    <th class="p-3">نوع الإجازة</th>
+                                    <th class="p-3">الفترة والمدة</th>
+                                    <th class="p-3">البديل والسبب</th>
+                                    <th class="p-3">اعتماد HR والإدارة</th>
+                                    <th class="p-3">الحالة</th>
+                                    <th class="p-3 rounded-l-xl">إجراء الاعتماد</th>
+                                </tr>
+                            </thead>
+                            <tbody id="leaves-table-body"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ==================== TAB 3: مقترحات تطوير العمل (SUGGESTIONS) ==================== -->
+            <section id="tab-sec-suggestions" class="hidden space-y-6">
+                <div class="frosted-card rounded-3xl p-6 border border-purple-200/80 space-y-4">
+                    <h3 class="text-base sm:text-lg font-bold text-ghazara-purpleDark">💡 تقديم مقترح لتطوير العمل ورفع الكفاءة</h3>
+                    <form id="form-suggestion" onsubmit="handleSubmitSuggestionForm(event)" class="space-y-3.5">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                            <div>
+                                <label class="block text-xs font-bold text-ghazara-purpleDark mb-1">عنوان المقترح التطويري *</label>
+                                <input type="text" id="sgTitle" required placeholder="مثال: أتمتة تقارير المتابعة الأسبوعية للعملاء" class="w-full rounded-xl border border-purple-200 px-3.5 py-2.5 text-xs bg-white">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-ghazara-purpleDark mb-1">الأثر المتوقع على العمل *</label>
+                                <input type="text" id="sgImpact" required placeholder="مثال: تقليل وقت إعداد التقارير بنسبة 50% وزيادة رضا العميل" class="w-full rounded-xl border border-purple-200 px-3.5 py-2.5 text-xs bg-white">
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-ghazara-purpleDark mb-1">شرح تفصيلي للمقترح وخطوات تطبيقه *</label>
+                            <textarea id="sgDetails" rows="3" required placeholder="اشرح فكرتك وكيف يمكن تطبيقها في قسمك أو في الشركة..." class="w-full rounded-xl border border-purple-200 px-3.5 py-2.5 text-xs bg-white"></textarea>
+                        </div>
+                        <button type="submit" class="btn-purple-gradient px-6 py-2.5 rounded-full text-xs font-bold">إرسال المقترح للإدارة</button>
+                    </form>
+                </div>
+
+                <div class="space-y-3" id="suggestions-list-box"></div>
+            </section>
+
+            <!-- ==================== TAB 4: العملاء والعقود (CUSTOMERS) ==================== -->
+            <section id="tab-sec-customers" class="hidden space-y-6">
+                <div class="frosted-card rounded-3xl p-6 border border-purple-200/80 space-y-4">
+                    <h3 class="text-base sm:text-lg font-bold text-ghazara-purpleDark">🤝 إضافة / تحديث بيانات عميل وعقد</h3>
+                    <form id="form-customer" onsubmit="handleSaveCustomerForm(event)" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
+                        <input type="text" id="custName" required placeholder="اسم العميل *" class="rounded-xl border border-purple-200 px-3 py-2 text-xs bg-white">
+                        <input type="text" id="custBusiness" required placeholder="الاسم التجاري / المنشأة *" class="rounded-xl border border-purple-200 px-3 py-2 text-xs bg-white">
+                        <input type="text" id="custPhone" required dir="ltr" placeholder="رقم الاتصال *" class="rounded-xl border border-purple-200 px-3 py-2 text-xs text-right bg-white">
+                        <input type="email" id="custEmail" placeholder="الإيميل" class="rounded-xl border border-purple-200 px-3 py-2 text-xs bg-white">
+                        <input type="text" id="custLocation" placeholder="مكان العميل (المدينة/العنوان)" class="rounded-xl border border-purple-200 px-3 py-2 text-xs bg-white">
+                        <input type="text" id="custContract" placeholder="نوع/رقم العقد" class="rounded-xl border border-purple-200 px-3 py-2 text-xs bg-white">
+                        <input type="date" id="custStartDate" title="تاريخ بدء العقد" class="rounded-xl border border-purple-200 px-3 py-2 text-xs bg-white">
+                        <input type="date" id="custEndDate" title="تاريخ انتهاء العقد" class="rounded-xl border border-purple-200 px-3 py-2 text-xs bg-white">
+                        <input type="number" id="custRenewals" min="0" placeholder="مرات تجديد العقد" class="rounded-xl border border-purple-200 px-3 py-2 text-xs bg-white">
+                        <input type="number" id="custRemaining" min="0" step="0.01" placeholder="المبلغ المتبقي المطلوب من العميل" class="rounded-xl border border-purple-200 px-3 py-2 text-xs bg-white">
+                        <input type="text" id="custSocial" placeholder="اسم صفحة السوشل ميديا" class="rounded-xl border border-purple-200 px-3 py-2 text-xs bg-white">
+                        <input type="text" id="custInstallments" placeholder="الأقساط (مثال: قسط1: 500$، قسط2: 500$)" class="rounded-xl border border-purple-200 px-3 py-2 text-xs bg-white">
+                        <input type="text" id="custReqServices" required placeholder="الخدمات المطلوبة في العقد *" class="sm:col-span-2 rounded-xl border border-purple-200 px-3 py-2 text-xs bg-white">
+                        <input type="text" id="custCompServices" placeholder="الخدمات المنجزة حتى الآن" class="sm:col-span-2 rounded-xl border border-purple-200 px-3 py-2 text-xs bg-white">
+                        <input type="text" id="custNotes" placeholder="ملاحظات إضافية" class="sm:col-span-3 rounded-xl border border-purple-200 px-3 py-2 text-xs bg-white">
+                        <button type="submit" class="btn-purple-gradient py-2.5 px-4 rounded-xl text-xs font-bold">حفظ العميل والعقد</button>
+                    </form>
+                </div>
+
+                <div class="frosted-card rounded-3xl p-6 border border-purple-200/80 space-y-4">
+                    <h3 class="text-base sm:text-lg font-bold text-ghazara-purpleDark">سجل العملاء والعقود ومتطلبات الأقسام</h3>
+                    <div class="overflow-x-auto custom-scrollbar">
+                        <table class="w-full text-right border-collapse">
+                            <thead>
+                                <tr class="bg-ghazara-purpleSoft text-ghazara-purpleDark text-xs font-bold">
+                                    <th class="p-3 rounded-r-xl">العميل والاسم التجاري</th>
+                                    <th class="p-3">التواصل</th>
+                                    <th class="p-3">العقد</th>
+                                    <th class="p-3">الخدمات المطلوبة</th>
+                                    <th class="p-3">الخدمات المنجزة</th>
+                                    <th class="p-3">فترة العقد والتجديد</th>
+                                    <th class="p-3">المبلغ المتبقي</th>
+                                    <th class="p-3 rounded-l-xl">إجراء</th>
+                                </tr>
+                            </thead>
+                            <tbody id="customers-table-body"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ==================== TAB 5: طلبات الموقع (LEADS) ==================== -->
+            <section id="tab-sec-leads" class="hidden space-y-6">
+                <div class="frosted-card rounded-3xl p-6 border border-purple-200/80 space-y-4">
+                    <h3 class="text-base sm:text-lg font-bold text-ghazara-purpleDark">🌐 طلبات العملاء الواردة من الموقع الإلكتروني</h3>
+                    <div class="overflow-x-auto custom-scrollbar">
+                        <table class="w-full text-right border-collapse">
+                            <thead>
+                                <tr class="bg-ghazara-purpleSoft text-ghazara-purpleDark text-xs font-bold">
+                                    <th class="p-3 rounded-r-xl">المرجع والتاريخ</th>
+                                    <th class="p-3">العميل والمنشأة</th>
+                                    <th class="p-3">رقم التواصل</th>
+                                    <th class="p-3">المجال المطلوب للدعم</th>
+                                    <th class="p-3">الهدف وموعد البدء</th>
+                                    <th class="p-3">حالة الطلب</th>
+                                    <th class="p-3 rounded-l-xl">المسؤول والحفظ</th>
+                                </tr>
+                            </thead>
+                            <tbody id="leads-table-body"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ==================== TAB 6: المالية (FINANCE) ==================== -->
+            <section id="tab-sec-finance" class="hidden space-y-6">
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div class="frosted-card p-5 rounded-3xl border border-emerald-200">
+                        <span class="text-xs font-bold text-emerald-700">إجمالي الإيرادات والدفعات</span>
+                        <p id="fin-total-rev" class="font-display text-2xl font-extrabold text-emerald-600 mt-1">0</p>
+                    </div>
+                    <div class="frosted-card p-5 rounded-3xl border border-rose-200">
+                        <span class="text-xs font-bold text-rose-700">إجمالي المصروفات التشغيلية</span>
+                        <p id="fin-total-exp" class="font-display text-2xl font-extrabold text-rose-600 mt-1">0</p>
+                    </div>
+                    <div class="frosted-card p-5 rounded-3xl border border-purple-200">
+                        <span class="text-xs font-bold text-ghazara-purple">صافي الرصيد المالي</span>
+                        <p id="fin-total-net" class="font-display text-2xl font-extrabold text-ghazara-purpleDark mt-1">0</p>
+                    </div>
+                </div>
+
+                <div class="frosted-card rounded-3xl p-6 border border-purple-200/80 space-y-4">
+                    <h3 class="text-base sm:text-lg font-bold text-ghazara-purpleDark">💰 تسجيل بند مالي جديد</h3>
+                    <form id="form-finance" onsubmit="handleSaveFinanceForm(event)" class="grid grid-cols-1 sm:grid-cols-4 gap-3.5 items-end">
+                        <div class="sm:col-span-2">
+                            <label class="block text-xs font-bold text-ghazara-purpleDark mb-1">اسم وتفاصيل البند المالي *</label>
+                            <input type="text" id="finName" required placeholder="مثال: دفعة العقد الأولى - شركة ... / مصروف إعلانات ممولة" class="w-full rounded-xl border border-purple-200 px-3.5 py-2 text-xs bg-white">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-ghazara-purpleDark mb-1">نوع البند *</label>
+                            <select id="finType" required class="w-full rounded-xl border border-purple-200 px-3 py-2 text-xs font-bold bg-white">
+                                <option value="إيراد عقد">إيراد عقد</option>
+                                <option value="دفعة قسط عميل">دفعة قسط عميل</option>
+                                <option value="مصروف تشغيلي">مصروف تشغيلي</option>
+                                <option value="رواتب وأجور">رواتب وأجور</option>
+                                <option value="حملات إعلانية وتسويق">حملات إعلانية وتسويق</option>
+                            </select>
+                        </div>
+                        <div class="flex gap-2">
+                            <div class="flex-grow">
+                                <label class="block text-xs font-bold text-ghazara-purpleDark mb-1">المبلغ *</label>
+                                <input type="number" id="finAmount" required min="0" step="0.01" placeholder="0.00" class="w-full rounded-xl border border-purple-200 px-3 py-2 text-xs font-display font-bold bg-white">
+                            </div>
+                            <button type="submit" class="btn-teal-gradient px-5 py-2 rounded-xl text-xs font-bold self-end">حفظ البند</button>
+                        </div>
+                    </form>
+                </div>
+
+                <div class="frosted-card rounded-3xl p-6 border border-purple-200/80 space-y-4">
+                    <h3 class="text-base sm:text-lg font-bold text-ghazara-purpleDark">سجل البنود المالية</h3>
+                    <div class="overflow-x-auto custom-scrollbar">
+                        <table class="w-full text-right border-collapse">
+                            <thead>
+                                <tr class="bg-ghazara-purpleSoft text-ghazara-purpleDark text-xs font-bold">
+                                    <th class="p-3 rounded-r-xl">رقم البند</th>
+                                    <th class="p-3">اسم البند</th>
+                                    <th class="p-3">نوع البند</th>
+                                    <th class="p-3">المبلغ</th>
+                                    <th class="p-3">سُجل بواسطة</th>
+                                    <th class="p-3 rounded-l-xl">وقت التسجيل</th>
+                                </tr>
+                            </thead>
+                            <tbody id="finance-table-body"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ==================== TAB 7: الموظفين (EMPLOYEES) ==================== -->
+            <section id="tab-sec-employees" class="hidden space-y-6">
+                <div class="frosted-card rounded-3xl p-6 border border-purple-200/80 space-y-4">
+                    <div class="flex flex-wrap items-center justify-between gap-2">
+                        <h3 class="text-base sm:text-lg font-bold text-ghazara-purpleDark">👥 إضافة / تعديل موظف وحساب دخول</h3>
+                    </div>
+                    <form id="form-employee" onsubmit="handleSaveEmployeeForm(event)" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
+                        <input type="hidden" id="empFormId">
+                        <input type="text" id="empFormName" required placeholder="اسم الموظف الكامل *" class="rounded-xl border border-purple-200 px-3 py-2 text-xs bg-white">
+                        <input type="text" id="empFormRole" required placeholder="المسمى الوظيفي (مثال: مصمم / موظف مبيعات) *" class="rounded-xl border border-purple-200 px-3 py-2 text-xs bg-white">
+                        <select id="empFormDept" required class="rounded-xl border border-purple-200 px-3 py-2 text-xs font-bold bg-white">
+                            <option value="الإدارة العليا">الإدارة العليا</option>
+                            <option value="الموارد البشرية">الموارد البشرية</option>
+                            <option value="المبيعات وتطوير الأعمال">المبيعات وتطوير الأعمال</option>
+                            <option value="التسويق">التسويق</option>
+                            <option value="الإعلام والإنتاج">الإعلام والإنتاج</option>
+                            <option value="التصميم والمونتاج">التصميم والمونتاج</option>
+                            <option value="المالية والحسابات">المالية والحسابات</option>
+                        </select>
+                        <select id="empFormTier" required class="rounded-xl border border-purple-200 px-3 py-2 text-xs font-bold bg-purple-50 text-ghazara-purpleDark">
+                            <option value="موظف">فئة الحساب: موظف</option>
+                            <option value="مدير قسم">فئة الحساب: مدير قسم</option>
+                            <option value="موارد بشرية">فئة الحساب: موارد بشرية</option>
+                            <option value="مدير تنفيذي">فئة الحساب: مدير تنفيذي</option>
+                        </select>
+                        <input type="text" id="empFormUsername" required dir="ltr" placeholder="اسم المستخدم للدخول (username) *" class="rounded-xl border border-purple-200 px-3 py-2 text-xs text-right bg-white">
+                        <input type="text" id="empFormPassword" required dir="ltr" placeholder="كلمة المرور *" value="123456" class="rounded-xl border border-purple-200 px-3 py-2 text-xs text-right bg-white">
+                        <input type="text" id="empFormMobile" dir="ltr" placeholder="رقم الجوال (+967...)" class="rounded-xl border border-purple-200 px-3 py-2 text-xs text-right bg-white">
+                        <input type="email" id="empFormEmail" dir="ltr" placeholder="البريد الإلكتروني" class="rounded-xl border border-purple-200 px-3 py-2 text-xs text-right bg-white">
+                        <input type="text" id="empFormManager" placeholder="المدير المباشر" class="rounded-xl border border-purple-200 px-3 py-2 text-xs bg-white">
+                        <input type="text" id="empFormQual" placeholder="آخر مؤهل دراسي" class="rounded-xl border border-purple-200 px-3 py-2 text-xs bg-white">
+                        <input type="text" id="empFormResidence" placeholder="مكان الإقامة" class="rounded-xl border border-purple-200 px-3 py-2 text-xs bg-white">
+                        <input type="date" id="empFormStart" title="تاريخ بدء العمل" class="rounded-xl border border-purple-200 px-3 py-2 text-xs bg-white">
+                        <input type="date" id="empFormBirth" title="تاريخ الميلاد" class="rounded-xl border border-purple-200 px-3 py-2 text-xs bg-white">
+                        <input type="text" id="empFormEmergencyName" placeholder="اسم أقرب شخص للطوارئ" class="rounded-xl border border-purple-200 px-3 py-2 text-xs bg-white">
+                        <input type="text" id="empFormEmergencyPhone" dir="ltr" placeholder="رقم جوال الطوارئ" class="rounded-xl border border-purple-200 px-3 py-2 text-xs text-right bg-white">
+                        <button type="submit" class="btn-purple-gradient py-2.5 px-4 rounded-xl text-xs font-bold">حفظ الموظف والحساب</button>
+                    </form>
+                </div>
+
+                <div class="frosted-card rounded-3xl p-6 border border-purple-200/80 space-y-4">
+                    <h3 class="text-base sm:text-lg font-bold text-ghazara-purpleDark">قائمة موظفي غزارة</h3>
+                    <div class="overflow-x-auto custom-scrollbar">
+                        <table class="w-full text-right border-collapse">
+                            <thead>
+                                <tr class="bg-ghazara-purpleSoft text-ghazara-purpleDark text-xs font-bold">
+                                    <th class="p-3 rounded-r-xl">الرقم الوظيفي</th>
+                                    <th class="p-3">اسم الموظف</th>
+                                    <th class="p-3">المسمى الوظيفي</th>
+                                    <th class="p-3">القسم</th>
+                                    <th class="p-3">فئة الصلاحية</th>
+                                    <th class="p-3">اسم المستخدم</th>
+                                    <th class="p-3">رقم الجوال</th>
+                                    <th class="p-3 rounded-l-xl">إجراءات</th>
+                                </tr>
+                            </thead>
+                            <tbody id="employees-table-body"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ==================== TAB 8: الصلاحيات (PERMISSIONS) ==================== -->
+            <section id="tab-sec-permissions" class="hidden space-y-6">
+                <div class="frosted-card rounded-3xl p-6 border border-purple-200/80 space-y-2">
+                    <h3 class="text-base sm:text-lg font-bold text-ghazara-purpleDark">🔐 مصفوفة تفويض ومنح الصلاحيات</h3>
+                    <p class="text-xs text-slate-600">
+                        يستطيع <strong>المدير التنفيذي</strong> منح أو سحب أي صلاحية لأي مدير قسم أو موظف في الشركة، كما يستطيع <strong>مدير القسم</strong> منح صلاحيات العمل لموظفي قسمه المباشرين.
+                    </p>
+                </div>
+                <div id="permissions-matrix-container" class="space-y-4"></div>
+            </section>
+
+            <!-- ==================== TAB 9: التقارير الشهرية للأقسام (MONTHLY REPORTS) ==================== -->
+            <section id="tab-sec-monthly_reports" class="hidden space-y-6">
+                <div class="frosted-card rounded-3xl p-6 border border-purple-200/80 space-y-5">
+                    <div class="flex flex-wrap items-center justify-between gap-3">
+                        <div>
+                            <h3 class="text-base sm:text-lg font-bold text-ghazara-purpleDark">📊 التقارير الشهرية الشاملة لجميع الأقسام</h3>
+                            <p class="text-xs text-slate-500">تقرير قياسي يجمع إنجاز المهام، الإجازات، العقود والعملاء، والأداء المالي لكل قسم.</p>
+                        </div>
+                        <div class="flex flex-wrap items-center gap-2 no-print">
+                            <input type="month" id="reportMonthFilter" onchange="renderMonthlyReportsSection()" class="rounded-xl border border-purple-200 px-3 py-1.5 text-xs font-bold bg-white">
+                            <select id="reportDeptFilter" onchange="renderMonthlyReportsSection()" class="rounded-xl border border-purple-200 px-3 py-1.5 text-xs font-bold bg-white">
+                                <option value="ALL">جميع الأقسام</option>
+                                <option value="الإدارة العليا">الإدارة العليا</option>
+                                <option value="الموارد البشرية">الموارد البشرية</option>
+                                <option value="المبيعات وتطوير الأعمال">المبيعات وتطوير الأعمال</option>
+                                <option value="التسويق">التسويق</option>
+                                <option value="الإعلام والإنتاج">الإعلام والإنتاج</option>
+                                <option value="التصميم والمونتاج">التصميم والمونتاج</option>
+                                <option value="المالية والحسابات">المالية والحسابات</option>
+                            </select>
+                            <button type="button" onclick="exportMonthlyReportCSV()" class="btn-teal-gradient px-4 py-1.5 rounded-xl text-xs font-bold">تصدير CSV / Excel</button>
+                            <button type="button" onclick="window.print()" class="btn-purple-gradient px-4 py-1.5 rounded-xl text-xs font-bold">طباعة / PDF</button>
+                        </div>
+                    </div>
+
+                    <div id="monthly-report-kpis" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5"></div>
+
+                    <div class="overflow-x-auto custom-scrollbar">
+                        <table class="w-full text-right border-collapse">
+                            <thead>
+                                <tr class="bg-ghazara-purpleSoft text-ghazara-purpleDark text-xs font-bold">
+                                    <th class="p-3 rounded-r-xl">القسم</th>
+                                    <th class="p-3">عدد الموظفين</th>
+                                    <th class="p-3">إجمالي المهام</th>
+                                    <th class="p-3">المهام المكتملة</th>
+                                    <th class="p-3">المهام المتأخرة</th>
+                                    <th class="p-3">نسبة الإنجاز</th>
+                                    <th class="p-3">طلبات الإجازات</th>
+                                    <th class="p-3 rounded-l-xl">مقترحات التطوير</th>
+                                </tr>
+                            </thead>
+                            <tbody id="monthly-dept-breakdown-body"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ==================== TAB 10: السجل والنسخ الاحتياطي (BACKUPS & AUDIT LOGS) ==================== -->
+            <section id="tab-sec-backups" class="hidden space-y-6">
+                <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                    <div class="lg:col-span-5 frosted-card rounded-3xl p-6 border border-purple-200/80 space-y-4">
+                        <h3 class="text-base font-bold text-ghazara-purpleDark">🛡️ النسخ الاحتياطي</h3>
+                        <div class="flex flex-wrap gap-2">
+                            <button type="button" onclick="createPortalBackupNow()" class="btn-purple-gradient px-4 py-2 rounded-xl text-xs font-bold">+ حفظ نسخة</button>
+                            <button type="button" onclick="downloadPortalJSONBackup()" class="btn-orange-gradient px-4 py-2 rounded-xl text-xs font-bold">تنزيل نسخة JSON</button>
+                        </div>
+                        <div id="backups-history-list" class="space-y-2 max-h-80 overflow-y-auto custom-scrollbar"></div>
+                    </div>
+
+                    <div class="lg:col-span-7 frosted-card rounded-3xl p-6 border border-purple-200/80 space-y-4">
+                        <h3 class="text-base font-bold text-ghazara-purpleDark">📜 سجل التعديلات والعمليات الحية</h3>
+                        <div class="overflow-x-auto max-h-96 custom-scrollbar">
+                            <table class="w-full text-right border-collapse">
+                                <thead>
+                                    <tr class="bg-ghazara-purpleSoft text-ghazara-purpleDark text-xs font-bold">
+                                        <th class="p-2.5 rounded-r-xl">المعرف</th>
+                                        <th class="p-2.5">التوقيت</th>
+                                        <th class="p-2.5">العملية</th>
+                                        <th class="p-2.5">المستخدم</th>
+                                        <th class="p-2.5">الحقل</th>
+                                        <th class="p-2.5 rounded-l-xl">التفاصيل</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="audit-logs-table-body"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- ==================== MODAL 1: إضافة / تعديل مهمة ==================== -->
+    <div id="modal-task-form" class="hidden fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl max-w-2xl w-full p-6 sm:p-8 shadow-2xl border border-purple-200 space-y-4 max-h-[90vh] overflow-y-auto">
+            <div class="flex items-center justify-between border-b border-purple-100 pb-3">
+                <h3 class="text-lg font-bold text-ghazara-purpleDark">إسناد / تعديل مهمة في النظام</h3>
+                <button type="button" onclick="closeTaskFormModal()" class="text-slate-400 hover:text-red-600 font-bold text-lg">✕</button>
+            </div>
+            <form id="form-portal-task" onsubmit="handleSavePortalTask(event)" class="grid grid-cols-1 sm:grid-cols-2 gap-3.5 text-xs">
+                <input type="hidden" id="tfTaskId">
+                <div class="sm:col-span-2">
+                    <label class="block font-bold text-ghazara-purpleDark mb-1">عنوان المهمة *</label>
+                    <input type="text" id="tfTitle" required placeholder="اكتب عنوان المهمة بوضوح..." class="w-full rounded-xl border border-purple-200 px-3.5 py-2.5">
+                </div>
+                <div class="sm:col-span-2">
+                    <label class="block font-bold text-ghazara-purpleDark mb-1">وصف وتفاصيل التنفيذ</label>
+                    <textarea id="tfDescription" rows="2" placeholder="خطوات العمل والمخرجات المطلوبة..." class="w-full rounded-xl border border-purple-200 px-3.5 py-2"></textarea>
+                </div>
+                <div>
+                    <label class="block font-bold text-ghazara-purpleDark mb-1">القسم المعني *</label>
+                    <select id="tfDepartment" required class="w-full rounded-xl border border-purple-200 px-3 py-2 font-bold"></select>
+                </div>
+                <div>
+                    <label class="block font-bold text-ghazara-purpleDark mb-1">الموظف المكلف بالتنفيذ *</label>
+                    <select id="tfAssignee" required class="w-full rounded-xl border border-purple-200 px-3 py-2 font-bold"></select>
+                </div>
+                <div class="sm:col-span-2">
+                    <label class="block font-bold text-ghazara-purpleDark mb-1">مسار التصنيف الإداري *</label>
+                    <select id="tfCategory" required class="w-full rounded-xl border border-purple-200 px-3 py-2 font-bold"></select>
+                </div>
+                <div>
+                    <label class="block font-bold text-ghazara-purpleDark mb-1">تاريخ البدء</label>
+                    <input type="date" id="tfStartDate" class="w-full rounded-xl border border-purple-200 px-3 py-2">
+                </div>
+                <div>
+                    <label class="block font-bold text-ghazara-purpleDark mb-1">الموعد النهائي للاستحقاق *</label>
+                    <input type="date" id="tfDueDate" required class="w-full rounded-xl border border-purple-200 px-3 py-2">
+                </div>
+                <div>
+                    <label class="block font-bold text-ghazara-purpleDark mb-1">الأولوية *</label>
+                    <select id="tfPriority" class="w-full rounded-xl border border-purple-200 px-3 py-2 font-bold">
+                        <option value="عاجلة جدًا">عاجلة جدًا</option>
+                        <option value="عالية">عالية</option>
+                        <option value="متوسطة" selected>متوسطة</option>
+                        <option value="منخفضة">منخفضة</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block font-bold text-ghazara-purpleDark mb-1">الحالة الحالية</label>
+                    <select id="tfStatus" class="w-full rounded-xl border border-purple-200 px-3 py-2 font-bold">
+                        <option value="جديدة">جديدة</option>
+                        <option value="قيد التنفيذ">قيد التنفيذ</option>
+                        <option value="بانتظار رد">بانتظار رد</option>
+                        <option value="بانتظار اعتماد">بانتظار اعتماد</option>
+                        <option value="مكتملة">مكتملة</option>
+                        <option value="مؤجلة">مؤجلة</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block font-bold text-ghazara-purpleDark mb-1">نسبة الإنجاز (%)</label>
+                    <input type="number" id="tfProgress" min="0" max="100" value="0" class="w-full rounded-xl border border-purple-200 px-3 py-2 font-display font-bold">
+                </div>
+                <div>
+                    <label class="block font-bold text-ghazara-purpleDark mb-1">ملاحظات إضافية</label>
+                    <input type="text" id="tfNotes" placeholder="ملاحظات..." class="w-full rounded-xl border border-purple-200 px-3 py-2">
+                </div>
+                <div class="sm:col-span-2 flex justify-end gap-2 pt-3 border-t border-purple-100">
+                    <button type="button" onclick="closeTaskFormModal()" class="px-5 py-2.5 rounded-full bg-slate-100 text-slate-600 font-bold">إلغاء</button>
+                    <button type="submit" class="btn-purple-gradient px-6 py-2.5 rounded-full font-bold">حفظ المهمة في النظام</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ==================== MODAL 2: الردود والقرارات على المهمة ==================== -->
+    <div id="modal-task-responses" class="hidden fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-purple-200 space-y-4">
+            <div class="flex items-center justify-between border-b border-purple-100 pb-3">
+                <h3 id="respModalTaskTitle" class="text-sm sm:text-base font-bold text-ghazara-purpleDark">الردود والملاحظات</h3>
+                <button type="button" onclick="document.getElementById('modal-task-responses').classList.add('hidden')" class="text-slate-400 hover:text-red-600 font-bold">✕</button>
+            </div>
+            <div id="respModalList" class="space-y-2 max-h-60 overflow-y-auto custom-scrollbar p-2 bg-slate-50 rounded-2xl"></div>
+            <form onsubmit="handleSaveTaskResponse(event)" class="space-y-3 text-xs">
+                <input type="hidden" id="respModalTaskId">
+                <select id="respModalType" class="w-full rounded-xl border border-purple-200 px-3 py-2 font-bold">
+                    <option value="تحديث تنفيذ من الموظف">تحديث تنفيذ من الموظف</option>
+                    <option value="توجيه من مدير القسم">توجيه من مدير القسم</option>
+                    <option value="قرار اعتماد من الإدارة التنفيذية">قرار اعتماد من الإدارة التنفيذية</option>
+                    <option value="ملاحظة الموارد البشرية">ملاحظة الموارد البشرية</option>
+                </select>
+                <textarea id="respModalText" rows="2" required placeholder="اكتب الرد أو الملاحظة..." class="w-full rounded-xl border border-purple-200 px-3 py-2"></textarea>
+                <div class="flex justify-end gap-2">
+                    <button type="button" onclick="document.getElementById('modal-task-responses').classList.add('hidden')" class="px-4 py-2 rounded-full bg-slate-100 text-slate-600 font-bold">إغلاق</button>
+                    <button type="submit" class="btn-purple-gradient px-5 py-2 rounded-full font-bold">إضافة الرد</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="../../assets/js/portal-system.js" onerror="var s=document.createElement('script');s.src='../assets/js/portal-system.js';document.body.appendChild(s);"></script>
+</body>
+</html>
